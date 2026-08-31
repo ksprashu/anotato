@@ -145,8 +145,8 @@ Anotato is built with a Layered Hybrid Architecture for ultra-fast 60 FPS viewpo
 | M-Rel-2 | GA4 Telemetry & Event Hooks | G-RN4Y25GBXM in index.html, src/analytics/telemetry.ts, paste/copy/annotate hooks & tests | M7 | DONE |
 | M-Rel-3 | Offline Caching & Bot Protection | Nginx rate limiting (30r/s), caching headers, security headers, offline client-side guarantee | M-Rel-2 | DONE |
 | M-Rel-4 | Dockerfile & Cloud Run deploy.sh | Multi-stage Dockerfile, deploy.sh with --project=ksp-demos, --min-instances=0, --max-instances=5 | M-Rel-3 | DONE |
-| M-Rel-5 | Git Scaffolding & Atomic Commits | Clean .gitignore, git init, 10 conventional atomic commits | M-Rel-1, M-Rel-4 | IN_PROGRESS |
-| M-Rel-6 | Acceptance Verification & Release Push | Full build & test pass, GitHub repo create & push, Cloud Run deploy verification | M-Rel-5 | PLANNED |
+| M-Rel-5 | Git Scaffolding & Atomic Commits | Clean .gitignore, git init, 10 conventional atomic commits | M-Rel-1, M-Rel-4 | DONE |
+| M-Rel-6 | Acceptance Verification & Release Push | Full build & test pass, GitHub repo create & push, Cloud Run deploy verification | M-Rel-5 | DONE |
 
 ## Interface Contracts
 ### `src/types/index.ts`
