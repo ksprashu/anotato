@@ -249,19 +249,29 @@ A high-performance, hardened multi-stage Docker container serves the production 
 
 ### Google Cloud Run Deployment
 
-A dedicated deployment script (`deploy.sh`) automates container compilation and deployment to Google Cloud Run under project `ksp-demos` with cost-safety guardrails and DDoS shielding:
+A dedicated deployment script (`deploy.sh`) automates container compilation and deployment to Google Cloud Run with cost-safety guardrails and DDoS shielding.
+
+Project and region are fully parameterized and can be configured via environment variables, a local `.env.deploy` file, or command-line arguments:
 
 ```bash
 # Make script executable
 chmod +x deploy.sh
 
-# Deploy to Google Cloud Run (project: ksp-demos, region: us-central1)
+# Option 1: Pass project ID and optional region as arguments
+./deploy.sh <your-gcp-project-id> [region]
+
+# Option 2: Use environment variables
+GCP_PROJECT_ID=your-gcp-project-id GCP_REGION=us-central1 ./deploy.sh
+
+# Option 3: Configure via .env.deploy file (copied from template)
+cp .env.deploy.example .env.deploy
+# Edit .env.deploy with your project ID
 ./deploy.sh
 ```
 
 **Cloud Run Configuration Guardrails**:
-- **Project**: Explicitly pinned to `--project=ksp-demos`
-- **Region**: `us-central1`
+- **Project**: Parameterized via `GCP_PROJECT_ID` / argument / `.env.deploy` / active `gcloud` config
+- **Region**: Defaults to `us-central1` (configurable via `GCP_REGION` or argument)
 - **Access**: Unauthenticated public HTTPS (`--allow-unauthenticated`)
 - **Concurrency**: `80` requests per instance
 - **Scale-to-Zero Guardrail**: `--min-instances=0` (zero idle costs)

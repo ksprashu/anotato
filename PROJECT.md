@@ -22,7 +22,7 @@ Anotato is built with a Layered Hybrid Architecture for ultra-fast 60 FPS viewpo
 
 ## Code Layout
 ```
-/Users/ksprashanth/code/github/anotato/
+anotato/
 ├── index.html
 ├── package.json
 ├── tsconfig.json
@@ -127,7 +127,7 @@ Anotato is built with a Layered Hybrid Architecture for ultra-fast 60 FPS viewpo
 | 24 | Open Source & Non-Affiliation Disclaimers | README.md, LICENSE (Apache 2.0), CONTRIBUTING.md with non-affiliation and no-SLA disclaimers | M-Rel-1 | ORIGINAL_REQUEST §R1 |
 | 25 | GA4 Analytics & Custom Telemetry Module | G-RN4Y25GBXM in index.html, src/analytics/telemetry.ts for paste, copy, annotate events | M-Rel-2 | ORIGINAL_REQUEST §R2 |
 | 26 | Offline Caching & Bot Attack Protection | Content-hashed static caching, no-cache HTML, Nginx 30r/s rate limiting & connection limits | M-Rel-3 | ORIGINAL_REQUEST §R3 |
-| 27 | Multi-Stage Dockerfile & Cloud Run Deploy Script | Lean Docker image, deploy.sh targeting ksp-demos (us-central1, min 0, max 5, concurrency 80) | M-Rel-4 | ORIGINAL_REQUEST §R4 |
+| 27 | Multi-Stage Dockerfile & Cloud Run Deploy Script | Lean Docker image, parameterized deploy.sh (env/arg project, default region us-central1, min 0, max 5, concurrency 80) | M-Rel-4 | ORIGINAL_REQUEST §R4 |
 | 28 | Git Scaffolding & Atomic Commit History | Clean .gitignore, git init, 10-step atomic commit progression | M-Rel-5 | ORIGINAL_REQUEST §R5 |
 | 29 | GitHub Repository Link & Cloud Deployment | gh repo create ksprashu/anotato, remote push, and Cloud Run service validation | M-Rel-6 | ORIGINAL_REQUEST §R4, §R5 |
 
@@ -144,7 +144,7 @@ Anotato is built with a Layered Hybrid Architecture for ultra-fast 60 FPS viewpo
 | M-Rel-1 | Open Source Disclaimers & Governance | README.md, LICENSE (Apache 2.0), CONTRIBUTING.md, .github templates with non-affiliation disclaimers | M7 | DONE |
 | M-Rel-2 | GA4 Telemetry & Event Hooks | G-RN4Y25GBXM in index.html, src/analytics/telemetry.ts, paste/copy/annotate hooks & tests | M7 | DONE |
 | M-Rel-3 | Offline Caching & Bot Protection | Nginx rate limiting (30r/s), caching headers, security headers, offline client-side guarantee | M-Rel-2 | DONE |
-| M-Rel-4 | Dockerfile & Cloud Run deploy.sh | Multi-stage Dockerfile, deploy.sh with --project=ksp-demos, --min-instances=0, --max-instances=5 | M-Rel-3 | DONE |
+| M-Rel-4 | Dockerfile & Cloud Run deploy.sh | Multi-stage Dockerfile, parameterized deploy.sh with env/arg support, --min-instances=0, --max-instances=5 | M-Rel-3 | DONE |
 | M-Rel-5 | Git Scaffolding & Atomic Commits | Clean .gitignore, git init, 10 conventional atomic commits | M-Rel-1, M-Rel-4 | DONE |
 | M-Rel-6 | Acceptance Verification & Release Push | Full build & test pass, GitHub repo create & push, Cloud Run deploy verification | M-Rel-5 | DONE |
 

@@ -118,11 +118,11 @@ describe('Adversarial Challenger Suite: Operations, Rate Limiting, Caching & Off
       const content = fs.readFileSync(deployShPath, 'utf-8');
 
       // Check max instances limit
-      expect(content).toMatch(/MAX_INSTANCES=5/);
+      expect(content).toMatch(/MAX_INSTANCES.*5/);
       expect(content).toMatch(/--max-instances="\${MAX_INSTANCES}"/);
 
       // Check concurrency per instance
-      expect(content).toMatch(/CONCURRENCY=80/);
+      expect(content).toMatch(/CONCURRENCY.*80/);
       expect(content).toMatch(/--concurrency="\${CONCURRENCY}"/);
 
       // Max total cluster concurrency = 5 * 80 = 400 simultaneous requests
@@ -132,7 +132,7 @@ describe('Adversarial Challenger Suite: Operations, Rate Limiting, Caching & Off
       expect(totalClusterConcurrency).toBe(400);
 
       // Scale to zero protects idle cost
-      expect(content).toMatch(/MIN_INSTANCES=0/);
+      expect(content).toMatch(/MIN_INSTANCES.*0/);
     });
   });
 
@@ -344,14 +344,14 @@ describe('Adversarial Challenger Suite: Operations, Rate Limiting, Caching & Off
       expect(lines).toContain('coverage');
     });
 
-    it('verifies deploy.sh strict execution flags and pinned configuration', () => {
+    it('verifies deploy.sh strict execution flags and parameterized configuration', () => {
       const content = fs.readFileSync(deployShPath, 'utf-8');
 
       expect(content).toContain('#!/usr/bin/env bash');
       expect(content).toContain('set -euo pipefail');
-      expect(content).toContain('PROJECT_ID="ksp-demos"');
-      expect(content).toContain('REGION="us-central1"');
-      expect(content).toContain('SERVICE_NAME="anotato"');
+      expect(content).toContain('GCP_PROJECT_ID');
+      expect(content).toContain('REGION=');
+      expect(content).toContain('SERVICE_NAME=');
       expect(content).toContain('--allow-unauthenticated');
     });
   });

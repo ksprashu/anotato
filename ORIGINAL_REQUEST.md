@@ -4,7 +4,7 @@
 
 Anotato is a screenshot annotation and note-taking web application designed for developer coding harnesses. It allows users to instantly paste clipboard images, add numbered visual annotations (bounding boxes, circles, arrows, callout pins), write structured notes for each annotation in a synchronized sidebar, and copy both the composite annotated image (PNG) and markdown notes to the system clipboard via single-click actions and keyboard shortcuts.
 
-Working directory: /Users/ksprashanth/code/github/anotato
+Working directory: .
 Integrity mode: demo
 
 ## Requirements

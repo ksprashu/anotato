@@ -159,18 +159,20 @@ describe('Milestones M-Rel-3 & M-Rel-4: Operations, Containerization & Deploymen
       expect(() => fs.accessSync(deployScriptPath, fs.constants.X_OK)).not.toThrow();
     });
 
-    it('enforces strict bash mode and pins deployment parameters to ksp-demos and us-central1', () => {
+    it('enforces strict bash mode and parameterizes deployment with environment and default fallbacks', () => {
       const content = fs.readFileSync(deployScriptPath, 'utf-8');
       expect(content).toContain('#!/usr/bin/env bash');
       expect(content).toContain('set -euo pipefail');
 
-      expect(content).toContain('PROJECT_ID="ksp-demos"');
-      expect(content).toContain('REGION="us-central1"');
-      expect(content).toContain('SERVICE_NAME="anotato"');
-      expect(content).toContain('CONCURRENCY=80');
-      expect(content).toContain('MIN_INSTANCES=0');
-      expect(content).toContain('MAX_INSTANCES=5');
-      expect(content).toContain('PORT=8080');
+      expect(content).toContain('.env.deploy');
+      expect(content).toContain('GCP_PROJECT_ID');
+      expect(content).toContain('REGION=');
+      expect(content).toContain('us-central1');
+      expect(content).toContain('SERVICE_NAME=');
+      expect(content).toContain('CONCURRENCY=');
+      expect(content).toContain('MIN_INSTANCES=');
+      expect(content).toContain('MAX_INSTANCES=');
+      expect(content).toContain('PORT=');
     });
 
     it('contains gcloud run deploy command with all required production flags', () => {

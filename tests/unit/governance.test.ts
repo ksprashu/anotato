@@ -42,7 +42,7 @@ describe('Milestone M-Rel-1: Governance, Disclaimers & Documentation Test Suite'
     expect(readmeContent).toContain('Comprehensive Keyboard Shortcuts');
     expect(readmeContent).toContain('Getting Started & Local Development');
     expect(readmeContent).toContain('Containerization & Production Deployment');
-    expect(readmeContent).toContain('ksp-demos');
+    expect(readmeContent).toContain('deploy.sh');
   });
 
   it('verifies CONTRIBUTING.md exists with developer guidelines, code standards, and SLA notice', () => {
