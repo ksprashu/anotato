@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="docs/images/banner.png" alt="Anotato - Screenshot Annotation & Note-Taking for Developers" width="100%" style="border-radius: 12px; margin-bottom: 20px;" />
+
 # Anotato 📝⚡
 
 **Screenshot Annotation & Split-View Markdown Note-Taking for Developers & Technical Writers**
