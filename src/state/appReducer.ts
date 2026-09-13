@@ -3,14 +3,16 @@ import {
   AnnotationGeometry,
   AppState,
   AppAction,
+  BaseImage,
   BoxGeometry,
   EllipseGeometry,
+  ImageOverlay,
   PresetColor,
   ViewportState,
 } from '../types';
 
 export const DEFAULT_COLOR: PresetColor = 'amber';
-export const DEFAULT_STROKE_WIDTH = 3;
+export const DEFAULT_STROKE_WIDTH = 2;
 export const DEFAULT_FILL_OPACITY = 0.15;
 
 export const DEFAULT_VIEWPORT: ViewportState = {
@@ -22,6 +24,7 @@ export const DEFAULT_VIEWPORT: ViewportState = {
 export function createInitialState(overrides?: Partial<AppState>): AppState {
   return {
     image: null,
+    overlays: [],
     annotations: [],
     selectedAnnotationId: null,
     hoveredAnnotationId: null,
@@ -118,8 +121,9 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return {
         ...state,
         image: action.payload,
-        // Reset annotations if new image is loaded (or set to null)
-        annotations: action.payload === null ? [] : state.annotations,
+        overlays: [],
+        // Reset annotations if new image is loaded (0 ghost annotations)
+        annotations: [],
         selectedAnnotationId: null,
         hoveredAnnotationId: null,
       };
@@ -129,10 +133,72 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return {
         ...state,
         image: null,
+        overlays: [],
         annotations: [],
         selectedAnnotationId: null,
         hoveredAnnotationId: null,
         viewport: { ...DEFAULT_VIEWPORT },
+      };
+    }
+
+    case 'REPLACE_IMAGE_AND_CLEAR': {
+      const nextImage =
+        action.payload && 'image' in action.payload && action.payload.image
+          ? action.payload.image
+          : (action.payload as BaseImage);
+      return {
+        ...state,
+        image: nextImage,
+        overlays: [],
+        annotations: [], // Purge all annotations (0 ghost annotations)
+        selectedAnnotationId: null,
+        hoveredAnnotationId: null,
+      };
+    }
+
+    case 'REPLACE_IMAGE_AND_KEEP': {
+      const nextImage =
+        action.payload && 'image' in action.payload && action.payload.image
+          ? action.payload.image
+          : (action.payload as BaseImage);
+      return {
+        ...state,
+        image: nextImage,
+        // Preserve annotations array reference & individual style objects verbatim
+        annotations: state.annotations.map((ann) => ({
+          ...ann,
+          style: { ...ann.style },
+        })),
+        selectedAnnotationId: null,
+        hoveredAnnotationId: null,
+      };
+    }
+
+    case 'ADD_IMAGE_OVERLAY': {
+      const overlay =
+        action.payload && 'overlay' in action.payload && action.payload.overlay
+          ? action.payload.overlay
+          : (action.payload as ImageOverlay);
+      return {
+        ...state,
+        overlays: [...(state.overlays || []), overlay],
+        selectedAnnotationId: null,
+      };
+    }
+
+    case 'REMOVE_IMAGE_OVERLAY': {
+      const targetId =
+        typeof action.payload === 'string' ? action.payload : action.payload.id;
+      return {
+        ...state,
+        overlays: (state.overlays || []).filter((o) => o.id !== targetId),
+      };
+    }
+
+    case 'CLEAR_IMAGE_OVERLAYS': {
+      return {
+        ...state,
+        overlays: [],
       };
     }
 

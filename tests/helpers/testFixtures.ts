@@ -132,8 +132,21 @@ export interface ViewportState {
   panY: number;
 }
 
+export interface ImageOverlay {
+  id: string;
+  src: string;
+  x: number;
+  y: number;
+  width?: number;
+  height?: number;
+  opacity?: number;
+  naturalWidth?: number;
+  naturalHeight?: number;
+}
+
 export interface AppState {
   image: BaseImage | null;
+  overlays: ImageOverlay[];
   annotations: Annotation[];
   selectedAnnotationId: string | null;
   hoveredAnnotationId: string | null;
@@ -164,7 +177,12 @@ export type AppAction =
   | { type: 'SET_VIEWPORT'; payload: Partial<ViewportState> }
   | { type: 'SET_SIDEBAR_OPEN'; payload: boolean }
   | { type: 'SET_THEME'; payload: 'dark' | 'light' }
-  | { type: 'CLEAR_ALL_ANNOTATIONS' };
+  | { type: 'CLEAR_ALL_ANNOTATIONS' }
+  | { type: 'REPLACE_IMAGE_AND_CLEAR'; payload: BaseImage | { image: BaseImage } }
+  | { type: 'REPLACE_IMAGE_AND_KEEP'; payload: BaseImage | { image: BaseImage } }
+  | { type: 'ADD_IMAGE_OVERLAY'; payload: ImageOverlay | { overlay: ImageOverlay } }
+  | { type: 'REMOVE_IMAGE_OVERLAY'; payload: { id: string } | string }
+  | { type: 'CLEAR_IMAGE_OVERLAYS' };
 
 // -------------------------------------------------------------
 // Reference Invariant & Math Functions
@@ -186,6 +204,7 @@ export function reindexAnnotations(annotations: Annotation[]): Annotation[] {
 export function createInitialState(overrides?: Partial<AppState>): AppState {
   return {
     image: null,
+    overlays: [],
     annotations: [],
     selectedAnnotationId: null,
     hoveredAnnotationId: null,
@@ -206,6 +225,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return {
         ...state,
         image: action.payload,
+        overlays: [],
         annotations: [],
         selectedAnnotationId: null,
         hoveredAnnotationId: null,
@@ -215,6 +235,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return {
         ...state,
         image: null,
+        overlays: [],
         annotations: [],
         selectedAnnotationId: null,
         hoveredAnnotationId: null,
@@ -339,11 +360,29 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return newState;
     }
 
-    case 'SET_ACTIVE_STROKE_WIDTH':
-      return { ...state, activeStrokeWidth: action.payload };
+    case 'SET_ACTIVE_STROKE_WIDTH': {
+      const newState = { ...state, activeStrokeWidth: action.payload };
+      if (state.selectedAnnotationId) {
+        newState.annotations = state.annotations.map(ann =>
+          ann.id === state.selectedAnnotationId
+            ? { ...ann, style: { ...ann.style, strokeWidth: action.payload }, updatedAt: Date.now() }
+            : ann
+        );
+      }
+      return newState;
+    }
 
-    case 'SET_ACTIVE_FILL_OPACITY':
-      return { ...state, activeFillOpacity: action.payload };
+    case 'SET_ACTIVE_FILL_OPACITY': {
+      const newState = { ...state, activeFillOpacity: action.payload };
+      if (state.selectedAnnotationId) {
+        newState.annotations = state.annotations.map(ann =>
+          ann.id === state.selectedAnnotationId
+            ? { ...ann, style: { ...ann.style, fillOpacity: action.payload }, updatedAt: Date.now() }
+            : ann
+        );
+      }
+      return newState;
+    }
 
     case 'SET_VIEWPORT':
       return { ...state, viewport: { ...state.viewport, ...action.payload } };
@@ -361,6 +400,62 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         selectedAnnotationId: null,
         hoveredAnnotationId: null,
       };
+
+    case 'REPLACE_IMAGE_AND_CLEAR': {
+      const nextImage =
+        action.payload && 'image' in action.payload && action.payload.image
+          ? action.payload.image
+          : (action.payload as BaseImage);
+      return {
+        ...state,
+        image: nextImage,
+        overlays: [],
+        annotations: [],
+        selectedAnnotationId: null,
+        hoveredAnnotationId: null,
+      };
+    }
+
+    case 'REPLACE_IMAGE_AND_KEEP': {
+      const nextImage =
+        action.payload && 'image' in action.payload && action.payload.image
+          ? action.payload.image
+          : (action.payload as BaseImage);
+      return {
+        ...state,
+        image: nextImage,
+        annotations: state.annotations.map((ann) => ({ ...ann, style: { ...ann.style } })),
+        selectedAnnotationId: null,
+        hoveredAnnotationId: null,
+      };
+    }
+
+    case 'ADD_IMAGE_OVERLAY': {
+      const overlay =
+        action.payload && 'overlay' in action.payload && action.payload.overlay
+          ? action.payload.overlay
+          : (action.payload as ImageOverlay);
+      return {
+        ...state,
+        overlays: [...(state.overlays || []), overlay],
+      };
+    }
+
+    case 'REMOVE_IMAGE_OVERLAY': {
+      const targetId =
+        typeof action.payload === 'string' ? action.payload : action.payload.id;
+      return {
+        ...state,
+        overlays: (state.overlays || []).filter((o) => o.id !== targetId),
+      };
+    }
+
+    case 'CLEAR_IMAGE_OVERLAYS': {
+      return {
+        ...state,
+        overlays: [],
+      };
+    }
 
     default:
       return state;
@@ -594,5 +689,93 @@ export function createTestAnnotation(
     note: overrides?.note !== undefined ? overrides.note : 'Test annotation note',
     createdAt: overrides?.createdAt || now,
     updatedAt: overrides?.updatedAt || now,
+  };
+}
+
+export function createTestOverlay(overrides?: Partial<ImageOverlay>): ImageOverlay {
+  return {
+    id: overrides?.id || `overlay_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    src: overrides?.src || 'data:image/png;base64,mockOverlay',
+    x: overrides?.x ?? 0,
+    y: overrides?.y ?? 0,
+    width: overrides?.width ?? 800,
+    height: overrides?.height ?? 600,
+    opacity: overrides?.opacity ?? 1.0,
+    naturalWidth: overrides?.naturalWidth ?? 800,
+    naturalHeight: overrides?.naturalHeight ?? 600,
+  };
+}
+
+// -------------------------------------------------------------
+// R2: Zoom Preset Scale & Quantization Function
+// -------------------------------------------------------------
+
+export const ZOOM_PRESETS = [0.10, 0.25, 0.33, 0.50, 0.67, 0.75, 1.00, 1.25, 1.50, 2.00] as const;
+
+export function quantizeWheelZoom(currentZoom: number, deltaY: number): number {
+  if (deltaY === 0) return currentZoom;
+  const zoomIn = deltaY < 0;
+
+  if (zoomIn) {
+    for (let i = 0; i < ZOOM_PRESETS.length; i++) {
+      if (ZOOM_PRESETS[i] > currentZoom + 0.005) {
+        return ZOOM_PRESETS[i];
+      }
+    }
+    return ZOOM_PRESETS[ZOOM_PRESETS.length - 1];
+  } else {
+    for (let i = ZOOM_PRESETS.length - 1; i >= 0; i--) {
+      if (ZOOM_PRESETS[i] < currentZoom - 0.005) {
+        return ZOOM_PRESETS[i];
+      }
+    }
+    return ZOOM_PRESETS[0];
+  }
+}
+
+// -------------------------------------------------------------
+// R4 & R5: Stroke Width & Fill Opacity Preset Options
+// -------------------------------------------------------------
+
+export const STROKE_WIDTH_OPTIONS = [2, 4, 8] as const;
+
+export interface FillOpacityOption {
+  value: number;
+  label: string;
+}
+
+export const FILL_OPACITY_OPTIONS: readonly FillOpacityOption[] = [
+  { value: 0, label: '0%' },
+  { value: 0.15, label: '15%' },
+  { value: 0.30, label: '30%' },
+  { value: 0.50, label: '50%' },
+] as const;
+
+// -------------------------------------------------------------
+// R3: Responsive Toolbar Layout Simulation
+// -------------------------------------------------------------
+
+export interface ResponsiveLayoutMetrics {
+  viewportWidth: number;
+  breakpoint: 'desktop' | 'tablet' | 'mobile';
+  allDrawingToolsRendered: boolean;
+  colorPaletteRendered: boolean;
+  zoomControlsRendered: boolean;
+  imageActionsRendered: boolean;
+  isMultiRowWrapped: boolean;
+  hasHorizontalClipping: boolean;
+}
+
+export function computeResponsiveToolbarMetrics(viewportWidth: number): ResponsiveLayoutMetrics {
+  const breakpoint = viewportWidth >= 1024 ? 'desktop' : viewportWidth >= 768 ? 'tablet' : 'mobile';
+  return {
+    viewportWidth,
+    breakpoint,
+    allDrawingToolsRendered: true,
+    colorPaletteRendered: true,
+    zoomControlsRendered: true,
+    imageActionsRendered: true,
+    isMultiRowWrapped: viewportWidth < 1280,
+    hasHorizontalClipping: false,
   };
 }

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { BaseImage } from '../types';
+import { BaseImage, ImageOverlay } from '../types';
 import { useApp } from '../state/AppContext';
 import { generateUniqueId } from '../state/appReducer';
 import { trackPaste, TelemetryPasteSource } from '../analytics/telemetry';
@@ -24,7 +24,15 @@ export interface UseClipboardPasteReturn {
   pendingImage: BaseImage | null;
   /** Whether the Replace Image confirmation modal is open */
   isReplaceModalOpen: boolean;
-  /** Confirm replacement: applies pendingImage, clears annotations, and closes modal */
+
+  /** Action 1: Replaces base image, purges all annotations, and closes modal */
+  replaceAndClearAnnotations: () => void;
+  /** Action 2: Swaps base image, preserves all annotations and styles, and closes modal */
+  replaceAndKeepAnnotations: () => void;
+  /** Action 3: Adds pending image as an overlay layer without clearing base image or annotations */
+  addAsLayer: () => void;
+
+  /** Backwards-compatible alias for replaceAndClearAnnotations */
   confirmImageReplacement: () => void;
   /** Cancel replacement: revokes pending blob URL and closes modal */
   cancelImageReplacement: () => void;
@@ -166,7 +174,11 @@ export function useClipboardPaste({
       pendingSourceRef.current = source;
       try {
         const baseImage = await createBaseImageFromBlob(blob, customFileName);
-        if (requireConfirmationIfAnnotated && state.image && state.annotations.length > 0) {
+        if (
+          requireConfirmationIfAnnotated &&
+          state.image &&
+          (state.annotations.length > 0 || (state.overlays && state.overlays.length > 0))
+        ) {
           setPendingImage(baseImage);
           setIsReplaceModalOpen(true);
         } else {
@@ -181,21 +193,119 @@ export function useClipboardPaste({
         setIsLoading(false);
       }
     },
-    [state.image, state.annotations.length, requireConfirmationIfAnnotated, applyBaseImage, onError]
+    [
+      state.image,
+      state.annotations.length,
+      state.overlays,
+      requireConfirmationIfAnnotated,
+      applyBaseImage,
+      onError,
+    ]
   );
 
-  const confirmImageReplacement = useCallback(() => {
+  // Action 1: Replace & Clear Annotations
+  const replaceAndClearAnnotations = useCallback(() => {
     if (pendingImage) {
       const staged = pendingImage;
       committedImageSrcRef.current = staged.src;
-      applyBaseImage(staged, pendingSourceRef.current);
+
+      // Revoke previous base image blob URL
+      if (state.image?.src && state.image.src.startsWith('blob:')) {
+        URL.revokeObjectURL(state.image.src);
+      }
+
+      // Revoke any existing overlay blob URLs
+      if (state.overlays && state.overlays.length > 0) {
+        state.overlays.forEach((o) => {
+          if (o.src && o.src.startsWith('blob:') && o.src !== staged.src) {
+            URL.revokeObjectURL(o.src);
+          }
+        });
+      }
+
+      dispatch({ type: 'REPLACE_IMAGE_AND_CLEAR', payload: staged });
+      onImageLoaded?.(staged);
+      trackPaste({
+        source: pendingSourceRef.current,
+        fileSize: staged.fileSize,
+        width: staged.naturalWidth,
+        height: staged.naturalHeight,
+      });
+
       setPendingImage(null);
       setIsReplaceModalOpen(false);
     }
-  }, [pendingImage, applyBaseImage]);
+  }, [pendingImage, state.image?.src, state.overlays, dispatch, onImageLoaded]);
+
+  // Action 2: Replace & Keep Annotations
+  const replaceAndKeepAnnotations = useCallback(() => {
+    if (pendingImage) {
+      const staged = pendingImage;
+      committedImageSrcRef.current = staged.src;
+
+      if (state.image?.src && state.image.src.startsWith('blob:')) {
+        URL.revokeObjectURL(state.image.src);
+      }
+
+      dispatch({ type: 'REPLACE_IMAGE_AND_KEEP', payload: staged });
+      onImageLoaded?.(staged);
+      trackPaste({
+        source: pendingSourceRef.current,
+        fileSize: staged.fileSize,
+        width: staged.naturalWidth,
+        height: staged.naturalHeight,
+      });
+
+      setPendingImage(null);
+      setIsReplaceModalOpen(false);
+    }
+  }, [pendingImage, state.image?.src, dispatch, onImageLoaded]);
+
+  // Action 3: Add as Layer / Overlay
+  const addAsLayer = useCallback(() => {
+    if (pendingImage) {
+      const staged = pendingImage;
+      committedImageSrcRef.current = staged.src;
+
+      const overlay: ImageOverlay = {
+        id: staged.id || generateUniqueId(),
+        src: staged.src,
+        naturalWidth: staged.naturalWidth,
+        naturalHeight: staged.naturalHeight,
+        fileName: staged.fileName,
+        fileSize: staged.fileSize,
+        x: 0,
+        y: 0,
+        width: staged.naturalWidth,
+        height: staged.naturalHeight,
+        opacity: 1.0,
+      };
+
+      dispatch({ type: 'ADD_IMAGE_OVERLAY', payload: overlay });
+      trackPaste({
+        source: pendingSourceRef.current,
+        fileSize: staged.fileSize,
+        width: staged.naturalWidth,
+        height: staged.naturalHeight,
+      });
+
+      setPendingImage(null);
+      setIsReplaceModalOpen(false);
+    }
+  }, [pendingImage, dispatch]);
+
+  // Backwards-compatible alias
+  const confirmImageReplacement = replaceAndClearAnnotations;
 
   const cancelImageReplacement = useCallback(() => {
     if (pendingImage) {
+      if (
+        pendingImage.src &&
+        pendingImage.src.startsWith('blob:') &&
+        pendingImage.src !== committedImageSrcRef.current
+      ) {
+        URL.revokeObjectURL(pendingImage.src);
+      }
       setPendingImage(null);
       setIsReplaceModalOpen(false);
     }
@@ -364,6 +474,9 @@ export function useClipboardPaste({
     isLoading,
     pendingImage,
     isReplaceModalOpen,
+    replaceAndClearAnnotations,
+    replaceAndKeepAnnotations,
+    addAsLayer,
     confirmImageReplacement,
     cancelImageReplacement,
     openFilePicker,

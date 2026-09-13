@@ -59,6 +59,7 @@ describe('Milestone 1 Scaffolding & Toolchain Smoke Tests', () => {
 
     const dummyState: AppState = {
       image: null,
+      overlays: [],
       annotations: [dummyAnnotation],
       selectedAnnotationId: 'ann-1',
       hoveredAnnotationId: null,

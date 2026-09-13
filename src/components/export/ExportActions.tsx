@@ -77,14 +77,15 @@ export const ExportActions: React.FC<ExportActionsProps> = ({
 
   const image = appState?.image ?? null;
   const annotations = appState?.annotations ?? [];
+  const overlays = appState?.overlays ?? [];
 
-  const hasImage = image !== null;
+  const hasImage = Boolean(image);
   const hasAnnotations = annotations.length > 0;
   const isBusy = exportingType !== null;
 
   // 1. Copy Image Handler (Cmd+C)
   const handleCopyImage = async () => {
-    if (disabled || isBusy || !hasImage) return;
+    if (disabled || isBusy || !image) return;
     trackCopy({ type: 'image_clipboard', annotationCount: annotations.length });
     if (onCopyImage) {
       await onCopyImage();
@@ -93,7 +94,7 @@ export const ExportActions: React.FC<ExportActionsProps> = ({
 
     setExportingType('image');
     try {
-      const blob = await exportCompositeBlob(image, annotations);
+      const blob = await exportCompositeBlob(image, annotations, overlays);
       const res = await writeImageToClipboard(blob);
 
       if (res.success && !res.fallbackUsed) {
@@ -144,7 +145,7 @@ export const ExportActions: React.FC<ExportActionsProps> = ({
 
   // 3. Combined Copy Handler
   const handleCopyCombined = async () => {
-    if (disabled || isBusy || !hasImage) return;
+    if (disabled || isBusy || !image) return;
     trackCopy({ type: 'combined_clipboard', annotationCount: annotations.length });
     if (onCopyCombined) {
       await onCopyCombined();
@@ -153,7 +154,7 @@ export const ExportActions: React.FC<ExportActionsProps> = ({
 
     setExportingType('combined');
     try {
-      const blob = await exportCompositeBlob(image, annotations);
+      const blob = await exportCompositeBlob(image, annotations, overlays);
       const markdown = serializeAnnotationsToMarkdown(annotations, {
         imageFileName: image?.fileName,
       });
@@ -177,7 +178,7 @@ export const ExportActions: React.FC<ExportActionsProps> = ({
 
   // 4. Export PNG File Download
   const handleExportPng = async () => {
-    if (disabled || isBusy || !hasImage) return;
+    if (disabled || isBusy || !image) return;
     trackCopy({ type: 'png_download', annotationCount: annotations.length });
     if (onExportPng) {
       await onExportPng();
@@ -186,7 +187,7 @@ export const ExportActions: React.FC<ExportActionsProps> = ({
 
     setExportingType('png');
     try {
-      const blob = await exportCompositeBlob(image, annotations);
+      const blob = await exportCompositeBlob(image, annotations, overlays);
       const baseName = sanitizeBaseFilename(image?.fileName);
       downloadBlob(blob, `${baseName}-annotated.png`);
       notify('success', 'Exported PNG screenshot!', `${baseName}-annotated.png`);

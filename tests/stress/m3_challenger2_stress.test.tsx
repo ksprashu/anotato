@@ -236,12 +236,12 @@ describe('Milestone 3 Challenger 2: Adversarial Stress Test Suite', () => {
         </AppProvider>
       );
 
-      // 1. Mutate Shape 1 -> Red, 6px, 50%
+      // 1. Mutate Shape 1 -> Red, 8px, 50%
       await user.click(screen.getByTestId('color-btn-red'));
-      await user.click(screen.getByTestId('stroke-btn-6'));
+      await user.click(screen.getByTestId('stroke-btn-8'));
       await user.click(screen.getByTestId('opacity-btn-50'));
 
-      expect(ctx!.state.annotations[0].style).toEqual({ color: 'red', strokeWidth: 6, fillOpacity: 0.5 });
+      expect(ctx!.state.annotations[0].style).toEqual({ color: 'red', strokeWidth: 8, fillOpacity: 0.5 });
       // Other shapes remain untouched
       expect(ctx!.state.annotations[1].style).toEqual({ color: 'amber', strokeWidth: 3, fillOpacity: 0.15 });
 
@@ -254,7 +254,7 @@ describe('Milestone 3 Challenger 2: Adversarial Stress Test Suite', () => {
       await user.click(screen.getByTestId('opacity-btn-0'));
 
       expect(ctx!.state.annotations[1].style).toEqual({ color: 'cyan', strokeWidth: 2, fillOpacity: 0 });
-      expect(ctx!.state.annotations[0].style).toEqual({ color: 'red', strokeWidth: 6, fillOpacity: 0.5 });
+      expect(ctx!.state.annotations[0].style).toEqual({ color: 'red', strokeWidth: 8, fillOpacity: 0.5 });
 
       // 3. Select Shape 3 -> Mutate to Purple, 4px, 30%
       act(() => {
@@ -266,15 +266,15 @@ describe('Milestone 3 Challenger 2: Adversarial Stress Test Suite', () => {
 
       expect(ctx!.state.annotations[2].style).toEqual({ color: 'purple', strokeWidth: 4, fillOpacity: 0.3 });
 
-      // 4. Select Shape 4 -> Mutate to Green, 6px, 15%
+      // 4. Select Shape 4 -> Mutate to Green, 8px, 15%
       act(() => {
         ctx!.dispatch({ type: 'SELECT_ANNOTATION', payload: 'shape-4' });
       });
       await user.click(screen.getByTestId('color-btn-green'));
-      await user.click(screen.getByTestId('stroke-btn-6'));
+      await user.click(screen.getByTestId('stroke-btn-8'));
       await user.click(screen.getByTestId('opacity-btn-15'));
 
-      expect(ctx!.state.annotations[3].style).toEqual({ color: 'green', strokeWidth: 6, fillOpacity: 0.15 });
+      expect(ctx!.state.annotations[3].style).toEqual({ color: 'green', strokeWidth: 8, fillOpacity: 0.15 });
 
       // 5. Select Shape 5 -> remains Amber, 3px, 15%
       act(() => {
@@ -284,10 +284,10 @@ describe('Milestone 3 Challenger 2: Adversarial Stress Test Suite', () => {
       expect(screen.getByTestId('stroke-btn-4')).toHaveAttribute('aria-checked', 'false');
 
       // Verify all 5 shapes maintain exact unique styling
-      expect(ctx!.state.annotations[0].style).toEqual({ color: 'red', strokeWidth: 6, fillOpacity: 0.5 });
+      expect(ctx!.state.annotations[0].style).toEqual({ color: 'red', strokeWidth: 8, fillOpacity: 0.5 });
       expect(ctx!.state.annotations[1].style).toEqual({ color: 'cyan', strokeWidth: 2, fillOpacity: 0 });
       expect(ctx!.state.annotations[2].style).toEqual({ color: 'purple', strokeWidth: 4, fillOpacity: 0.3 });
-      expect(ctx!.state.annotations[3].style).toEqual({ color: 'green', strokeWidth: 6, fillOpacity: 0.15 });
+      expect(ctx!.state.annotations[3].style).toEqual({ color: 'green', strokeWidth: 8, fillOpacity: 0.15 });
       expect(ctx!.state.annotations[4].style).toEqual({ color: 'amber', strokeWidth: 3, fillOpacity: 0.15 });
     });
 
@@ -310,13 +310,13 @@ describe('Milestone 3 Challenger 2: Adversarial Stress Test Suite', () => {
         </AppProvider>
       );
 
-      // Change creation defaults to Purple, 6px, 50%
+      // Change creation defaults to Purple, 8px, 50%
       await user.click(screen.getByTestId('color-btn-purple'));
-      await user.click(screen.getByTestId('stroke-btn-6'));
+      await user.click(screen.getByTestId('stroke-btn-8'));
       await user.click(screen.getByTestId('opacity-btn-50'));
 
       expect(ctx!.state.activeColor).toBe('purple');
-      expect(ctx!.state.activeStrokeWidth).toBe(6);
+      expect(ctx!.state.activeStrokeWidth).toBe(8);
       expect(ctx!.state.activeFillOpacity).toBe(0.5);
 
       // Existing annotations must remain unchanged!
@@ -331,7 +331,7 @@ describe('Milestone 3 Challenger 2: Adversarial Stress Test Suite', () => {
         });
       });
 
-      expect(ctx!.state.annotations[2].style).toEqual({ color: 'purple', strokeWidth: 6, fillOpacity: 0.5 });
+      expect(ctx!.state.annotations[2].style).toEqual({ color: 'purple', strokeWidth: 8, fillOpacity: 0.5 });
     });
   });
 

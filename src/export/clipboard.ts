@@ -4,7 +4,7 @@
  * automatic file download fallback, and secure Object URL lifecycle management.
  */
 
-import { BaseImage, Annotation } from '../types';
+import { BaseImage, Annotation, ImageOverlay } from '../types';
 import { exportCompositeBlob } from './canvasExporter';
 import {
   serializeAnnotationsToMarkdown,
@@ -355,11 +355,20 @@ export async function writeCombinedToClipboard(
 export async function copyCompositeImage(
   baseImage: BaseImage,
   annotations: Annotation[],
+  overlaysOrOptions?: ImageOverlay[] | ClipboardImageOptions,
   options?: ClipboardImageOptions
 ): Promise<ClipboardResult> {
-  const blob = await exportCompositeBlob(baseImage, annotations);
+  let overlays: ImageOverlay[] | undefined;
+  let opts: ClipboardImageOptions | undefined;
+  if (Array.isArray(overlaysOrOptions)) {
+    overlays = overlaysOrOptions;
+    opts = options;
+  } else {
+    opts = overlaysOrOptions;
+  }
+  const blob = await exportCompositeBlob(baseImage, annotations, overlays);
   const fallbackName = generateExportFilename(baseImage, 'png', 'annotated');
-  return writeImageToClipboard(blob, { fallbackFileName: fallbackName, ...options });
+  return writeImageToClipboard(blob, { fallbackFileName: fallbackName, ...opts });
 }
 
 /**
@@ -382,11 +391,20 @@ export async function copyAnnotationNotes(
 export async function downloadCompositeImageFile(
   baseImage: BaseImage,
   annotations: Annotation[],
+  overlaysOrCustomFileName?: ImageOverlay[] | string,
   customFileName?: string
 ): Promise<void> {
-  const blob = await exportCompositeBlob(baseImage, annotations);
-  const filename = customFileName || generateExportFilename(baseImage, 'png', 'annotated');
-  downloadBlob(blob, filename);
+  let overlays: ImageOverlay[] | undefined;
+  let filename: string | undefined;
+  if (Array.isArray(overlaysOrCustomFileName)) {
+    overlays = overlaysOrCustomFileName;
+    filename = customFileName;
+  } else {
+    filename = overlaysOrCustomFileName;
+  }
+  const blob = await exportCompositeBlob(baseImage, annotations, overlays);
+  const targetFilename = filename || generateExportFilename(baseImage, 'png', 'annotated');
+  downloadBlob(blob, targetFilename);
 }
 
 /**

@@ -165,10 +165,10 @@ describe('CanvasWorkspace Component', () => {
       expect(parseInt(hudLevel.textContent || '0')).toBeLessThan(200);
     });
 
-    it('clamps zoom strictly between MIN_ZOOM (0.05) and MAX_ZOOM (20.0)', () => {
+    it('clamps zoom to 200% maximum preset on wheel zoom in', () => {
       renderWithContext({
         image: mockBaseImage,
-        viewport: { zoom: 19.5, panX: 0, panY: 0 },
+        viewport: { zoom: 2.0, panX: 0, panY: 0 },
       });
 
       const container = screen.getByTestId('canvas-workspace-container');
@@ -180,7 +180,25 @@ describe('CanvasWorkspace Component', () => {
       });
 
       const hudLevel = screen.getByTestId('hud-zoom-level');
-      expect(hudLevel.textContent).toBe('2000%');
+      expect(hudLevel.textContent).toBe('200%');
+    });
+
+    it('clamps zoom to 10% minimum preset on wheel zoom out', () => {
+      renderWithContext({
+        image: mockBaseImage,
+        viewport: { zoom: 0.10, panX: 0, panY: 0 },
+      });
+
+      const container = screen.getByTestId('canvas-workspace-container');
+      // Huge zoom out
+      fireEvent.wheel(container, {
+        clientX: 500,
+        clientY: 400,
+        deltaY: 5000,
+      });
+
+      const hudLevel = screen.getByTestId('hud-zoom-level');
+      expect(hudLevel.textContent).toBe('10%');
     });
   });
 

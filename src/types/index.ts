@@ -80,6 +80,20 @@ export interface BaseImage {
   fileSize: number; // In bytes
 }
 
+export interface ImageOverlay {
+  id: string; // Unique identifier (UUID or nanoid)
+  src: string; // Object URL or Data URL
+  x: number; // Top-left X offset in natural canvas pixels (default 0)
+  y: number; // Top-left Y offset in natural canvas pixels (default 0)
+  width?: number; // Rendered width in natural pixels (defaults to naturalWidth)
+  height?: number; // Rendered height in natural pixels (defaults to naturalHeight)
+  opacity?: number; // Layer opacity between 0.0 and 1.0 (default 1.0)
+  naturalWidth?: number; // Native width in pixels
+  naturalHeight?: number; // Native height in pixels
+  fileName?: string; // Original filename
+  fileSize?: number; // Size in bytes
+}
+
 export interface ViewportState {
   zoom: number; // Scale factor (e.g., 1.0 = 100%, 0.1 to 10.0)
   panX: number; // Viewport horizontal translation in CSS pixels
@@ -88,6 +102,7 @@ export interface ViewportState {
 
 export interface AppState {
   image: BaseImage | null;
+  overlays: ImageOverlay[];
   annotations: Annotation[];
   selectedAnnotationId: string | null;
   hoveredAnnotationId: string | null;
@@ -114,6 +129,11 @@ export interface HistoryState {
 export type AppAction =
   | { type: 'SET_IMAGE'; payload: BaseImage | null }
   | { type: 'CLEAR_IMAGE' }
+  | { type: 'REPLACE_IMAGE_AND_CLEAR'; payload: BaseImage | { image: BaseImage } }
+  | { type: 'REPLACE_IMAGE_AND_KEEP'; payload: BaseImage | { image: BaseImage } }
+  | { type: 'ADD_IMAGE_OVERLAY'; payload: ImageOverlay | { overlay: ImageOverlay } }
+  | { type: 'REMOVE_IMAGE_OVERLAY'; payload: { id: string } | string }
+  | { type: 'CLEAR_IMAGE_OVERLAYS' }
   | {
       type: 'ADD_ANNOTATION';
       payload: {
@@ -168,3 +188,4 @@ export type AppAction =
   | { type: 'TOGGLE_THEME' }
   | { type: 'RESTORE_SNAPSHOT'; payload: HistorySnapshot }
   | { type: 'RESET_STATE'; payload?: Partial<AppState> };
+

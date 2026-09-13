@@ -4,6 +4,8 @@ import {
   imageToScreen,
   computeZoomTransform,
   computeZoomDelta,
+  quantizeWheelZoom,
+  ZOOM_PRESETS,
   getFitToViewportTransform,
   clamp,
 } from '../../src/math/coordinates';
@@ -162,4 +164,60 @@ describe('coordinates math engine', () => {
       expect(transform.panY).toBe((800 - 100 * 5) / 2);
     });
   });
+
+  describe('ZOOM_PRESETS & quantizeWheelZoom', () => {
+    it('defines exactly 10 strictly increasing presets from 0.10 to 2.00', () => {
+      expect(ZOOM_PRESETS).toHaveLength(10);
+      expect(ZOOM_PRESETS).toEqual([0.10, 0.25, 0.33, 0.50, 0.67, 0.75, 1.00, 1.25, 1.50, 2.00]);
+      for (let i = 1; i < ZOOM_PRESETS.length; i++) {
+        expect(ZOOM_PRESETS[i]).toBeGreaterThan(ZOOM_PRESETS[i - 1]);
+      }
+    });
+
+    it('steps up monotonically by 1 preset on negative deltaY', () => {
+      let z = 1.00;
+      z = quantizeWheelZoom(z, -120);
+      expect(z).toBe(1.25);
+      z = quantizeWheelZoom(z, -120);
+      expect(z).toBe(1.50);
+      z = quantizeWheelZoom(z, -120);
+      expect(z).toBe(2.00);
+      z = quantizeWheelZoom(z, -120);
+      expect(z).toBe(2.00); // Clamps at 2.00
+    });
+
+    it('steps down monotonically by 1 preset on positive deltaY', () => {
+      let z = 1.00;
+      z = quantizeWheelZoom(z, 120);
+      expect(z).toBe(0.75);
+      z = quantizeWheelZoom(z, 120);
+      expect(z).toBe(0.67);
+      z = quantizeWheelZoom(z, 120);
+      expect(z).toBe(0.50);
+      z = quantizeWheelZoom(z, 120);
+      expect(z).toBe(0.33);
+      z = quantizeWheelZoom(z, 120);
+      expect(z).toBe(0.25);
+      z = quantizeWheelZoom(z, 120);
+      expect(z).toBe(0.10);
+      z = quantizeWheelZoom(z, 120);
+      expect(z).toBe(0.10); // Clamps at 0.10
+    });
+
+    it('leaves zoom unchanged when deltaY is 0', () => {
+      expect(quantizeWheelZoom(1.0, 0)).toBe(1.0);
+      expect(quantizeWheelZoom(0.42, 0)).toBe(0.42);
+    });
+
+    it('snaps arbitrary fractional zoom (e.g. 13.4%) without multi-tier leap', () => {
+      expect(quantizeWheelZoom(0.134, -100)).toBe(0.25);
+      expect(quantizeWheelZoom(0.134, 100)).toBe(0.10);
+    });
+
+    it('handles extreme delta bursts (deltaY = ±10,000) with single-step advance', () => {
+      expect(quantizeWheelZoom(0.25, -10000)).toBe(0.33);
+      expect(quantizeWheelZoom(1.00, 10000)).toBe(0.75);
+    });
+  });
 });
+

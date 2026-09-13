@@ -3,7 +3,7 @@ import { useApp } from '../../state/AppContext';
 import { PRESET_COLORS, COLOR_KEYS } from '../../constants/colors';
 import { PresetColor } from '../../types';
 
-export const STROKE_WIDTH_OPTIONS = [2, 4, 6] as const;
+export const STROKE_WIDTH_OPTIONS = [2, 4, 8] as const;
 export const FILL_OPACITY_OPTIONS = [
   { value: 0, label: '0%', title: 'Outline (0% fill)' },
   { value: 0.15, label: '15%', title: 'Subtle (15% fill)' },
@@ -39,7 +39,7 @@ export const ColorPalette: React.FC<ColorPaletteProps> = ({
   const selectedAnnotationId = appState?.selectedAnnotationId ?? null;
   const annotations = appState?.annotations ?? [];
   const activeColor = appState?.activeColor ?? 'amber';
-  const activeStrokeWidth = appState?.activeStrokeWidth ?? 3;
+  const activeStrokeWidth = appState?.activeStrokeWidth ?? 2;
   const activeFillOpacity = appState?.activeFillOpacity ?? 0.15;
 
   // Resolve active styling: selected annotation takes precedence over default creation state
@@ -80,7 +80,7 @@ export const ColorPalette: React.FC<ColorPaletteProps> = ({
 
   return (
     <div
-      className={`flex items-center gap-2 bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/80 rounded-lg p-1 px-2 text-slate-700 dark:text-slate-200 shadow-sm select-none ${className}`}
+      className={`flex flex-wrap items-center gap-2 bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/80 rounded-lg p-1 px-2 text-slate-700 dark:text-slate-200 shadow-sm select-none ${className}`}
       role="toolbar"
       aria-label="Color and style palette"
       data-testid="color-palette"
@@ -122,7 +122,7 @@ export const ColorPalette: React.FC<ColorPaletteProps> = ({
 
       <div className="w-[1px] h-4 bg-slate-200 dark:bg-slate-700 mx-0.5" />
 
-      {/* 2. Stroke Width Controls (2px, 4px, 6px) */}
+      {/* 2. Stroke Width Controls (2px, 4px, 8px) */}
       <div className="flex items-center gap-1" role="radiogroup" aria-label="Stroke width">
         {STROKE_WIDTH_OPTIONS.map((width) => {
           const isSelected = currentStrokeWidth === width;
@@ -146,7 +146,7 @@ export const ColorPalette: React.FC<ColorPaletteProps> = ({
             >
               <span
                 className="inline-block w-3 rounded-full bg-current"
-                style={{ height: `${Math.max(2, width - 1)}px` }}
+                style={{ height: `${width === 8 ? 6 : Math.max(2, width - 1)}px` }}
               />
               <span>{width}px</span>
             </button>
@@ -158,6 +158,12 @@ export const ColorPalette: React.FC<ColorPaletteProps> = ({
 
       {/* 3. Fill Opacity Controls (0%, 15%, 30%, 50%) */}
       <div className="flex items-center gap-1" role="radiogroup" aria-label="Fill opacity">
+        <span
+          data-testid="fill-opacity-label"
+          className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 px-0.5 select-none"
+        >
+          Fill
+        </span>
         {FILL_OPACITY_OPTIONS.map((option) => {
           const isSelected = Math.abs(currentFillOpacity - option.value) < 0.05;
 
@@ -169,7 +175,7 @@ export const ColorPalette: React.FC<ColorPaletteProps> = ({
               disabled={disabled}
               className={`px-1.5 py-1 rounded text-[11px] font-mono font-medium transition-colors active:scale-95 cursor-pointer ${
                 isSelected
-                  ? 'bg-slate-200 dark:bg-slate-700 text-amber-700 dark:text-amber-400 font-bold border border-slate-300 dark:border-slate-600'
+                  ? 'bg-amber-500/15 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 font-bold border border-amber-500/50 shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent'
               } disabled:opacity-40 disabled:cursor-not-allowed`}
               title={option.title}

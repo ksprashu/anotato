@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { ZoomControls, getNextZoomIn, getNextZoomOut } from '../../src/components/toolbar/ZoomControls';
+import { ZoomControls, getNextZoomIn, getNextZoomOut, ZOOM_PRESETS } from '../../src/components/toolbar/ZoomControls';
 import { AppProvider } from '../../src/state/AppContext';
 import { BaseImage } from '../../src/types';
 
@@ -20,17 +20,27 @@ describe('ZoomControls Component', () => {
   });
 
   describe('Pure Mathematical Stepping Functions', () => {
-    it('calculates discrete next zoom in step correctly', () => {
-      expect(getNextZoomIn(0.5)).toBe(0.67);
-      expect(getNextZoomIn(1.0)).toBe(1.25);
-      expect(getNextZoomIn(1.25)).toBe(1.5);
+    it('defines exactly 10 strictly increasing presets matching the project contract', () => {
+      expect(ZOOM_PRESETS).toHaveLength(10);
+      expect(ZOOM_PRESETS).toEqual([0.10, 0.25, 0.33, 0.50, 0.67, 0.75, 1.00, 1.25, 1.50, 2.00]);
+      for (let i = 1; i < ZOOM_PRESETS.length; i++) {
+        expect(ZOOM_PRESETS[i]).toBeGreaterThan(ZOOM_PRESETS[i - 1]);
+      }
+    });
+
+    it('steps through full 10-preset ladder monotonically on zoom in', () => {
+      const expectedLadder = [0.10, 0.25, 0.33, 0.50, 0.67, 0.75, 1.00, 1.25, 1.50, 2.00];
+      for (let i = 0; i < expectedLadder.length - 1; i++) {
+        expect(getNextZoomIn(expectedLadder[i])).toBe(expectedLadder[i + 1]);
+      }
       expect(getNextZoomIn(20.0)).toBe(20.0);
     });
 
-    it('calculates discrete next zoom out step correctly', () => {
-      expect(getNextZoomOut(1.0)).toBe(0.75);
-      expect(getNextZoomOut(0.75)).toBe(0.67);
-      expect(getNextZoomOut(0.5)).toBe(0.33);
+    it('steps through full 10-preset ladder monotonically on zoom out', () => {
+      const expectedLadder = [0.10, 0.25, 0.33, 0.50, 0.67, 0.75, 1.00, 1.25, 1.50, 2.00];
+      for (let i = expectedLadder.length - 1; i > 0; i--) {
+        expect(getNextZoomOut(expectedLadder[i])).toBe(expectedLadder[i - 1]);
+      }
       expect(getNextZoomOut(0.05)).toBe(0.05);
     });
   });
@@ -142,7 +152,7 @@ describe('ZoomControls Component', () => {
   });
 
   describe('Preset Menu Dropdown', () => {
-    it('toggles preset dropdown menu on clicking zoom percentage', async () => {
+    it('toggles preset dropdown menu and renders all 10 presets without obsolete items', async () => {
       const user = userEvent.setup();
 
       render(
@@ -155,14 +165,21 @@ describe('ZoomControls Component', () => {
 
       await user.click(screen.getByTestId('zoom-level-dropdown-btn'));
       expect(screen.getByTestId('zoom-preset-menu')).toBeInTheDocument();
-      expect(screen.getByTestId('zoom-preset-50')).toBeInTheDocument();
-      expect(screen.getByTestId('zoom-preset-100')).toBeInTheDocument();
-      expect(screen.getByTestId('zoom-preset-200')).toBeInTheDocument();
+
+      // Verify all 10 presets are present
+      const allPresetValues = [10, 25, 33, 50, 67, 75, 100, 125, 150, 200];
+      for (const val of allPresetValues) {
+        expect(screen.getByTestId(`zoom-preset-${val}`)).toBeInTheDocument();
+      }
+
+      // Verify obsolete presets (like 400%) are omitted
+      expect(screen.queryByTestId('zoom-preset-400')).not.toBeInTheDocument();
+
       expect(screen.getByTestId('zoom-menu-fit-to-screen')).toBeInTheDocument();
       expect(screen.getByTestId('zoom-menu-actual-size')).toBeInTheDocument();
     });
 
-    it('invokes onSetZoom callback when preset is selected from dropdown', async () => {
+    it('invokes onSetZoom callback across low, mid, and high presets', async () => {
       const user = userEvent.setup();
       const onSetZoomMock = vi.fn();
 
@@ -172,10 +189,56 @@ describe('ZoomControls Component', () => {
         </AppProvider>
       );
 
+      // Low preset (10%)
+      await user.click(screen.getByTestId('zoom-level-dropdown-btn'));
+      await user.click(screen.getByTestId('zoom-preset-10'));
+      expect(onSetZoomMock).toHaveBeenCalledWith(0.10);
+
+      // Mid preset (67%)
+      await user.click(screen.getByTestId('zoom-level-dropdown-btn'));
+      await user.click(screen.getByTestId('zoom-preset-67'));
+      expect(onSetZoomMock).toHaveBeenCalledWith(0.67);
+
+      // High preset (200%)
       await user.click(screen.getByTestId('zoom-level-dropdown-btn'));
       await user.click(screen.getByTestId('zoom-preset-200'));
-
       expect(onSetZoomMock).toHaveBeenCalledWith(2.0);
+
+      expect(screen.queryByTestId('zoom-preset-menu')).not.toBeInTheDocument();
+    });
+
+    it('applies amber active highlight to the currently matching preset', async () => {
+      const user = userEvent.setup();
+
+      render(
+        <AppProvider initialState={{ image: mockImage, viewport: { zoom: 0.67, panX: 0, panY: 0 } }}>
+          <ZoomControls />
+        </AppProvider>
+      );
+
+      await user.click(screen.getByTestId('zoom-level-dropdown-btn'));
+
+      const activeBtn = screen.getByTestId('zoom-preset-67');
+      const inactiveBtn = screen.getByTestId('zoom-preset-100');
+
+      expect(activeBtn.className).toContain('text-amber-600');
+      expect(inactiveBtn.className).not.toContain('text-amber-600');
+    });
+
+    it('dismisses preset dropdown when clicking outside', async () => {
+      const user = userEvent.setup();
+
+      render(
+        <AppProvider initialState={{ image: mockImage, viewport: { zoom: 1.0, panX: 0, panY: 0 } }}>
+          <div data-testid="outside-element">Outside</div>
+          <ZoomControls />
+        </AppProvider>
+      );
+
+      await user.click(screen.getByTestId('zoom-level-dropdown-btn'));
+      expect(screen.getByTestId('zoom-preset-menu')).toBeInTheDocument();
+
+      await user.click(screen.getByTestId('outside-element'));
       expect(screen.queryByTestId('zoom-preset-menu')).not.toBeInTheDocument();
     });
   });

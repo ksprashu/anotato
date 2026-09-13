@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { useApp } from '../../state/AppContext';
 import {
-  computeZoomDelta,
+  quantizeWheelZoom,
   computeZoomTransform,
   getFitToViewportTransform,
   MIN_ZOOM,
@@ -26,6 +26,7 @@ export const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
 }) => {
   const { state, dispatch } = useApp();
   const { image, viewport, activeTool } = state;
+  const overlays = state.overlays ?? [];
 
   const containerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -99,6 +100,10 @@ export const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
     return () => observer.disconnect();
   }, [image, fitToContainer]);
 
+  // Track latest viewport in a ref to prevent stale closures and eliminate listener churn
+  const viewportRef = useRef(viewport);
+  viewportRef.current = viewport;
+
   // Non-passive wheel zoom listener
   useEffect(() => {
     const container = containerRef.current;
@@ -107,15 +112,31 @@ export const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
 
+      // Guard: Ignore wheel if deltaY is 0 (pure horizontal trackpad scroll)
+      if (e.deltaY === 0) return;
+
+      const currentViewport = viewportRef.current;
+      const targetZoom = quantizeWheelZoom(currentViewport.zoom, e.deltaY);
+
+      // Guard: If zoom is clamped at boundary and unchanged, skip redundant transform
+      if (targetZoom === currentViewport.zoom) return;
+
       const rect = container.getBoundingClientRect();
       const focalPointScreen: Point = {
         x: e.clientX - rect.left,
         y: e.clientY - rect.top,
       };
 
-      const sensitivity = e.ctrlKey ? 0.01 : 0.0015;
-      const targetZoom = computeZoomDelta(viewport.zoom, e.deltaY, sensitivity, MIN_ZOOM, MAX_ZOOM);
-      const nextViewport = computeZoomTransform(viewport, focalPointScreen, targetZoom, MIN_ZOOM, MAX_ZOOM);
+      const nextViewport = computeZoomTransform(
+        currentViewport,
+        focalPointScreen,
+        targetZoom,
+        MIN_ZOOM,
+        MAX_ZOOM
+      );
+
+      // Synchronously update ref so back-to-back intra-frame wheel ticks read the latest zoom
+      viewportRef.current = nextViewport;
 
       dispatch({
         type: 'SET_VIEWPORT',
@@ -127,7 +148,7 @@ export const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
     return () => {
       container.removeEventListener('wheel', handleWheel);
     };
-  }, [viewport, dispatch]);
+  }, [dispatch]);
 
   // Global spacebar key tracking
   useEffect(() => {
@@ -439,6 +460,27 @@ export const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
               imageRendering: viewport.zoom >= 3.0 ? 'pixelated' : 'auto',
             }}
           />
+
+          {/* Overlay Image Layers (Rendered between Base Image and SvgOverlay) */}
+          {overlays.map((layer) => (
+            <img
+              key={layer.id}
+              src={layer.src}
+              alt={layer.fileName || 'Overlay Layer'}
+              data-testid={`canvas-overlay-image-${layer.id}`}
+              data-overlay-id={layer.id}
+              draggable={false}
+              className="absolute select-none pointer-events-none max-w-none shadow-md rounded-sm"
+              style={{
+                left: `${layer.x ?? 0}px`,
+                top: `${layer.y ?? 0}px`,
+                width: `${layer.width ?? layer.naturalWidth}px`,
+                height: `${layer.height ?? layer.naturalHeight}px`,
+                opacity: layer.opacity ?? 1,
+                imageRendering: viewport.zoom >= 3.0 ? 'pixelated' : 'auto',
+              }}
+            />
+          ))}
 
           {/* Children: SVG Vector Overlay & Annotations (M3) */}
           <SvgOverlay />

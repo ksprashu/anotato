@@ -10,7 +10,7 @@ import {
   loadImageElement,
   createCanvas,
 } from '../../src/export/canvasExporter';
-import { BaseImage, Annotation } from '../../src/types';
+import { BaseImage, Annotation, ImageOverlay } from '../../src/types';
 import { PRESET_COLORS } from '../../src/constants/colors';
 
 describe('1:1 Native Composite Canvas Exporter Unit Tests', () => {
@@ -300,6 +300,81 @@ describe('1:1 Native Composite Canvas Exporter Unit Tests', () => {
       expect(canvas.width).toBe(1920);
       expect(canvas.height).toBe(1080);
       expect(elapsed).toBeLessThan(1000);
+    });
+  });
+
+  // =========================================================================
+  // Group 6: Overlay Image Layer Compositing
+  // =========================================================================
+  describe('Group 6: Overlay Image Layer Compositing', () => {
+    const mockOverlay1: ImageOverlay = {
+      id: 'ov-1',
+      src: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      naturalWidth: 640,
+      naturalHeight: 480,
+      fileName: 'overlay1.png',
+      fileSize: 2048,
+      x: 100,
+      y: 80,
+      opacity: 0.85,
+    };
+
+    const mockOverlay2: ImageOverlay = {
+      id: 'ov-2',
+      src: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      naturalWidth: 320,
+      naturalHeight: 240,
+      fileName: 'overlay2.png',
+      fileSize: 1024,
+      x: 250,
+      y: 300,
+      opacity: 1.0,
+    };
+
+    it('E6.1: renders composite canvas with overlay layers between base image and annotations', async () => {
+      const canvas = await renderCompositeCanvas(mockBaseImage, [mockBox], [mockOverlay1]);
+      const ctx = canvas.getContext('2d')!;
+
+      // 1. Base image drawn
+      expect(ctx.drawImage).toHaveBeenNthCalledWith(1, expect.anything(), 0, 0, 1920, 1080);
+      // 2. Overlay drawn with x=100, y=80, w=640, h=480
+      expect(ctx.drawImage).toHaveBeenNthCalledWith(2, expect.anything(), 100, 80, 640, 480);
+      // 3. Annotations drawn on top
+      expect(canvas.width).toBe(1920);
+      expect(canvas.height).toBe(1080);
+    });
+
+    it('E6.2: applies overlay opacity to ctx.globalAlpha and restores it', async () => {
+      const canvas = await renderCompositeCanvas(mockBaseImage, [], [mockOverlay1]);
+      const ctx = canvas.getContext('2d')!;
+
+      expect(ctx.save).toHaveBeenCalled();
+      expect(ctx.restore).toHaveBeenCalled();
+    });
+
+    it('E6.3: supports overlays passed via ExportCanvasOptions object', async () => {
+      const canvas = await renderCompositeCanvas(mockBaseImage, [], {
+        overlays: [mockOverlay1, mockOverlay2],
+        backgroundColor: '#000000',
+      });
+      const ctx = canvas.getContext('2d')!;
+
+      // Background filled
+      expect(ctx.fillRect).toHaveBeenCalledWith(0, 0, 1920, 1080);
+      // Base image + 2 overlays = 3 drawImage calls
+      expect(ctx.drawImage).toHaveBeenCalledTimes(3);
+    });
+
+    it('E6.4: exportCompositeBlob returns valid PNG Blob when overlays are present', async () => {
+      const blob = await exportCompositeBlob(mockBaseImage, [mockBox], [mockOverlay1]);
+      expect(blob).toBeInstanceOf(Blob);
+      expect(blob.type).toBe('image/png');
+    });
+
+    it('E6.5: exportCompositeDataUrl returns standard PNG data URL when overlays are present', async () => {
+      const dataUrl = await exportCompositeDataUrl(mockBaseImage, [mockBox], [mockOverlay1]);
+      expect(typeof dataUrl).toBe('string');
+      expect(dataUrl.startsWith('data:image/png;base64')).toBe(true);
     });
   });
 });

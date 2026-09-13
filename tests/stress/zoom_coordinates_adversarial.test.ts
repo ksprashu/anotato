@@ -5,6 +5,8 @@ import {
   imageToScreen,
   computeZoomTransform,
   computeZoomDelta,
+  quantizeWheelZoom,
+  ZOOM_PRESETS,
   getFitToViewportTransform,
   applyPanDelta,
   MIN_ZOOM,
@@ -219,4 +221,94 @@ describe('Adversarial Coordinate & Zoom Math Stress Tests', () => {
       expect(vp.zoom).toBe(2.0);
     });
   });
+
+  describe('quantizeWheelZoom & ZOOM_PRESETS adversarial stress & focal point invariance', () => {
+    it('defines exactly 10 strictly increasing presets from 0.10 to 2.00', () => {
+      expect(ZOOM_PRESETS).toHaveLength(10);
+      expect(ZOOM_PRESETS).toEqual([0.10, 0.25, 0.33, 0.50, 0.67, 0.75, 1.00, 1.25, 1.50, 2.00]);
+      for (let i = 1; i < ZOOM_PRESETS.length; i++) {
+        expect(ZOOM_PRESETS[i]).toBeGreaterThan(ZOOM_PRESETS[i - 1]);
+      }
+    });
+
+    it('steps up monotonically by 1 preset on negative deltaY and clamps at 2.00', () => {
+      let z = 0.10;
+      const expectedSteps = [0.25, 0.33, 0.50, 0.67, 0.75, 1.00, 1.25, 1.50, 2.00];
+      for (const expected of expectedSteps) {
+        z = quantizeWheelZoom(z, -120);
+        expect(z).toBe(expected);
+      }
+      // Clamping at 2.00
+      expect(quantizeWheelZoom(z, -120)).toBe(2.00);
+      expect(quantizeWheelZoom(z, -5000)).toBe(2.00);
+    });
+
+    it('steps down monotonically by 1 preset on positive deltaY and clamps at 0.10', () => {
+      let z = 2.00;
+      const expectedSteps = [1.50, 1.25, 1.00, 0.75, 0.67, 0.50, 0.33, 0.25, 0.10];
+      for (const expected of expectedSteps) {
+        z = quantizeWheelZoom(z, 120);
+        expect(z).toBe(expected);
+      }
+      // Clamping at 0.10
+      expect(quantizeWheelZoom(z, 120)).toBe(0.10);
+      expect(quantizeWheelZoom(z, 5000)).toBe(0.10);
+    });
+
+    it('leaves zoom unchanged when deltaY is 0', () => {
+      for (const preset of ZOOM_PRESETS) {
+        expect(quantizeWheelZoom(preset, 0)).toBe(preset);
+      }
+      expect(quantizeWheelZoom(0.42, 0)).toBe(0.42);
+    });
+
+    it('snaps arbitrary fractional zoom (e.g. 13.4% or 48.75%) to adjacent preset without multi-tier leap', () => {
+      // 13.4% zoom
+      expect(quantizeWheelZoom(0.134, -100)).toBe(0.25);
+      expect(quantizeWheelZoom(0.134, 100)).toBe(0.10);
+
+      // 48.75% zoom
+      expect(quantizeWheelZoom(0.4875, -100)).toBe(0.50);
+      expect(quantizeWheelZoom(0.4875, 100)).toBe(0.33);
+    });
+
+    it('handles extreme delta bursts (deltaY = ±10,000) with single-step advance', () => {
+      expect(quantizeWheelZoom(0.25, -10000)).toBe(0.33);
+      expect(quantizeWheelZoom(1.00, 10000)).toBe(0.75);
+      expect(quantizeWheelZoom(0.50, -50000)).toBe(0.67);
+      expect(quantizeWheelZoom(0.50, 50000)).toBe(0.33);
+    });
+
+    it('tolerates IEEE 754 subpixel precision drift without jumping or sticking', () => {
+      expect(quantizeWheelZoom(0.3300000001, -120)).toBe(0.50);
+      expect(quantizeWheelZoom(0.3300000001, 120)).toBe(0.25);
+      expect(quantizeWheelZoom(0.6699999999, -120)).toBe(0.75);
+      expect(quantizeWheelZoom(0.6699999999, 120)).toBe(0.50);
+    });
+
+    it('survives 10,000 random wheel delta burst transitions while maintaining cursor focal point invariance', () => {
+      let vp: ViewportState = { zoom: 1.0, panX: 100, panY: 50 };
+
+      for (let i = 0; i < 10000; i++) {
+        const focalScreen: Point = {
+          x: (Math.random() - 0.5) * 4000,
+          y: (Math.random() - 0.5) * 4000,
+        };
+        const randomDeltaY = (Math.random() - 0.5) * 20000; // [-10,000, +10,000]
+
+        const imgBefore = screenToImage(focalScreen, vp);
+        const nextZoom = quantizeWheelZoom(vp.zoom, randomDeltaY);
+
+        expect(nextZoom).toBeGreaterThanOrEqual(0.10);
+        expect(nextZoom).toBeLessThanOrEqual(2.00);
+
+        vp = computeZoomTransform(vp, focalScreen, nextZoom);
+
+        const screenAfter = imageToScreen(imgBefore, vp);
+        expect(screenAfter.x).toBeCloseTo(focalScreen.x, 3);
+        expect(screenAfter.y).toBeCloseTo(focalScreen.y, 3);
+      }
+    });
+  });
 });
+
