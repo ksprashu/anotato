@@ -446,7 +446,7 @@ describe('Milestone 6 Challenger 2: Adversarial Stress Test Suite', () => {
       expect(toolIndicator).toHaveTextContent('select');
 
       const toolKeyMap = [
-        { key: 'b', expected: 'box' },
+        { key: 'b', expected: 'blur' },
         { key: 'r', expected: 'box' },
         { key: 'c', expected: 'ellipse' },
         { key: 'o', expected: 'ellipse' },

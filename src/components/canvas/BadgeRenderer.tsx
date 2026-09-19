@@ -12,6 +12,7 @@ export interface BadgeRendererProps {
   isSelected?: boolean;
   isHovered?: boolean;
   isDraft?: boolean;
+  scale?: number;
   zoom?: number;
   onClick?: (e: React.MouseEvent) => void;
   onPointerEnter?: () => void;
@@ -26,6 +27,7 @@ export const BadgeRenderer: React.FC<BadgeRendererProps> = ({
   isSelected: explicitSelected,
   isHovered: explicitHovered,
   isDraft = false,
+  scale = 1.0,
   zoom: _zoom = 1.0,
   onClick,
   onPointerEnter,
@@ -41,6 +43,9 @@ export const BadgeRenderer: React.FC<BadgeRendererProps> = ({
     // Rendered outside AppProvider in isolated unit tests
   }
 
+  const safeScale = typeof scale === 'number' && Number.isFinite(scale) && scale > 0 ? scale : 1.0;
+  const scaledOffset = Math.round(3 * safeScale);
+
   const index = annotation?.index ?? explicitIndex ?? 1;
   const colorKey: PresetColor = annotation?.style.color ?? explicitColor ?? 'amber';
   const colorDef = PRESET_COLORS[colorKey] || PRESET_COLORS.amber;
@@ -52,11 +57,11 @@ export const BadgeRenderer: React.FC<BadgeRendererProps> = ({
 
   const anchor = useMemo<Point>(() => {
     if (explicitPosition) return explicitPosition;
-    if (annotation) return getBadgePositionForShape(annotation.geometry);
+    if (annotation) return getBadgePositionForShape(annotation.geometry, safeScale);
     return { x: 0, y: 0 };
-  }, [explicitPosition, annotation]);
+  }, [explicitPosition, annotation, safeScale]);
 
-  const dims = useMemo(() => getBadgeDimensions(index), [index]);
+  const dims = useMemo(() => getBadgeDimensions(index, safeScale), [index, safeScale]);
   const { width, height, radius, isPill, fontSize } = dims;
 
   const handleClick = (e: React.MouseEvent) => {
@@ -107,16 +112,16 @@ export const BadgeRenderer: React.FC<BadgeRendererProps> = ({
             {isPill ? (
               <rect
                 data-testid={`badge-selection-ring-${index}`}
-                x={anchor.x - (width + 6) / 2}
-                y={anchor.y - (height + 6) / 2}
-                width={width + 6}
-                height={height + 6}
-                rx={radius + 3}
-                ry={radius + 3}
+                x={anchor.x - (width + scaledOffset * 2) / 2}
+                y={anchor.y - (height + scaledOffset * 2) / 2}
+                width={width + scaledOffset * 2}
+                height={height + scaledOffset * 2}
+                rx={radius + scaledOffset}
+                ry={radius + scaledOffset}
                 fill="none"
                 stroke="#38bdf8"
-                strokeWidth={2}
-                strokeDasharray="3 3"
+                strokeWidth={Math.max(1.5, 2 * safeScale)}
+                strokeDasharray={`${scaledOffset} ${scaledOffset}`}
                 opacity={0.9}
               />
             ) : (
@@ -124,11 +129,11 @@ export const BadgeRenderer: React.FC<BadgeRendererProps> = ({
                 data-testid={`badge-selection-ring-${index}`}
                 cx={anchor.x}
                 cy={anchor.y}
-                r={radius + 3}
+                r={radius + scaledOffset}
                 fill="none"
                 stroke="#38bdf8"
-                strokeWidth={2}
-                strokeDasharray="3 3"
+                strokeWidth={Math.max(1.5, 2 * safeScale)}
+                strokeDasharray={`${scaledOffset} ${scaledOffset}`}
                 opacity={0.9}
               />
             )}
@@ -147,7 +152,7 @@ export const BadgeRenderer: React.FC<BadgeRendererProps> = ({
             ry={radius}
             fill={colorDef.badgeBg}
             stroke="#ffffff"
-            strokeWidth={1.5}
+            strokeWidth={Math.max(1, 1.5 * safeScale)}
             filter="url(#badge-drop-shadow)"
           />
         ) : (
@@ -158,7 +163,7 @@ export const BadgeRenderer: React.FC<BadgeRendererProps> = ({
             r={radius}
             fill={colorDef.badgeBg}
             stroke="#ffffff"
-            strokeWidth={1.5}
+            strokeWidth={Math.max(1, 1.5 * safeScale)}
             filter="url(#badge-drop-shadow)"
           />
         )}

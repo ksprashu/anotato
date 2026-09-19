@@ -5,6 +5,8 @@ import {
   AppAction,
   BaseImage,
   BoxGeometry,
+  HighlightGeometry,
+  BlurGeometry,
   EllipseGeometry,
   ImageOverlay,
   PresetColor,
@@ -99,12 +101,50 @@ export function normalizeEllipseGeometry(ellipse: EllipseGeometry): EllipseGeome
 }
 
 /**
+ * Normalizes highlight geometry so width and height are strictly non-negative.
+ */
+export function normalizeHighlightGeometry(highlight: HighlightGeometry): HighlightGeometry {
+  const x = highlight.width < 0 ? highlight.x + highlight.width : highlight.x;
+  const y = highlight.height < 0 ? highlight.y + highlight.height : highlight.y;
+  const width = Math.abs(highlight.width);
+  const height = Math.abs(highlight.height);
+  return {
+    ...highlight,
+    x,
+    y,
+    width,
+    height,
+  };
+}
+
+/**
+ * Normalizes blur geometry so width and height are strictly non-negative.
+ */
+export function normalizeBlurGeometry(blur: BlurGeometry): BlurGeometry {
+  const x = blur.width < 0 ? blur.x + blur.width : blur.x;
+  const y = blur.height < 0 ? blur.y + blur.height : blur.y;
+  const width = Math.abs(blur.width);
+  const height = Math.abs(blur.height);
+  return {
+    ...blur,
+    x,
+    y,
+    width,
+    height,
+  };
+}
+
+/**
  * Normalizes any annotation geometry before persisting to state.
  */
 export function normalizeGeometry(geometry: AnnotationGeometry): AnnotationGeometry {
   switch (geometry.type) {
     case 'box':
       return normalizeBoxGeometry(geometry);
+    case 'highlight':
+      return normalizeHighlightGeometry(geometry);
+    case 'blur':
+      return normalizeBlurGeometry(geometry);
     case 'ellipse':
       return normalizeEllipseGeometry(geometry);
     default:

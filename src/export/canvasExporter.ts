@@ -1,13 +1,14 @@
-import { BaseImage, Annotation, PresetColor, ImageOverlay } from '../types';
+import { BaseImage, Annotation, PresetColor, ImageOverlay, HighlightGeometry, BlurGeometry } from '../types';
 import { PRESET_COLORS } from '../constants/colors';
 import { calculateArrowhead } from '../math/geometry';
-import { getBadgePositionForShape, getBadgeDimensions } from '../math/badges';
+import { getBadgePositionForShape, getBadgeDimensions, computeResolutionScale } from '../math/badges';
 
 export interface ExportCanvasOptions {
   pixelRatio?: number; // Default 1.0 (exact 1:1 native)
   backgroundColor?: string; // Optional background fill if image has alpha
   drawDrafts?: boolean; // Default false
   overlays?: ImageOverlay[]; // Optional overlay layers list
+  scale?: number; // Optional resolution scale override
 }
 
 /**
@@ -141,24 +142,54 @@ export function createCanvas(width: number, height: number): HTMLCanvasElement {
 }
 
 /**
+ * Downscale/upscale pixel diffusion fallback for environments lacking ctx.filter.
+ * Downscales the source subregion by ~10x into a small temporary canvas,
+ * then paints it back with bilinear interpolation, destroying high-frequency details.
+ */
+export function bakeBlurFallback(
+  ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+  imgElement: HTMLImageElement | CanvasImageSource,
+  x: number,
+  y: number,
+  w: number,
+  h: number
+): void {
+  if (w <= 0 || h <= 0) return;
+  const sampleW = Math.max(2, Math.round(w / 10));
+  const sampleH = Math.max(2, Math.round(h / 10));
+  const smallCanvas = createCanvas(sampleW, sampleH);
+  const smallCtx = smallCanvas.getContext('2d');
+  if (!smallCtx) return;
+
+  smallCtx.imageSmoothingEnabled = true;
+  smallCtx.imageSmoothingQuality = 'high';
+  // Draw subregion of source image downscaled
+  smallCtx.drawImage(imgElement, x, y, w, h, 0, 0, sampleW, sampleH);
+
+  // Draw back upscaled into target ctx
+  ctx.drawImage(smallCanvas, 0, 0, sampleW, sampleH, x, y, w, h);
+}
+
+/**
  * High-contrast numbered badge rasterizer with drop shadow and pill expansion.
  */
 export function rasterizeBadge(
   ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
   position: { x: number; y: number },
   index: number,
-  color: PresetColor
+  color: PresetColor,
+  scale: number = 1.0
 ): void {
   const colorDef = PRESET_COLORS[color] || PRESET_COLORS.amber;
-  const dims = getBadgeDimensions(index);
+  const dims = getBadgeDimensions(index, scale);
   const { width, height, radius, isPill, fontSize } = dims;
 
   // 1. Draw Drop Shadow & Background Fill
   ctx.save();
   ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-  ctx.shadowBlur = 4;
+  ctx.shadowBlur = Math.round(4 * scale);
   ctx.shadowOffsetX = 0;
-  ctx.shadowOffsetY = 2;
+  ctx.shadowOffsetY = Math.round(2 * scale);
 
   ctx.beginPath();
   if (isPill) {
@@ -179,7 +210,7 @@ export function rasterizeBadge(
     ctx.arc(position.x, position.y, radius, 0, 2 * Math.PI);
   }
   ctx.strokeStyle = '#FFFFFF';
-  ctx.lineWidth = 1.5;
+  ctx.lineWidth = Math.max(1.5, 1.5 * scale);
   ctx.stroke();
 
   // 3. Sequence Index Text
@@ -196,7 +227,8 @@ export function rasterizeBadge(
  */
 export function rasterizeAnnotation(
   ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
-  annotation: Annotation
+  annotation: Annotation,
+  scale: number = 1.0
 ): void {
   const { geometry, style, index } = annotation;
   const colorDef = PRESET_COLORS[style.color] || PRESET_COLORS.amber;
@@ -218,7 +250,37 @@ export function rasterizeAnnotation(
       ctx.stroke();
 
       // Render Numbered Badge at top-left corner
-      rasterizeBadge(ctx, { x, y }, index, style.color);
+      rasterizeBadge(ctx, { x, y }, index, style.color, scale);
+      break;
+    }
+
+    case 'highlight': {
+      const { x, y, width, height, borderRadius = 4 } = geometry;
+      ctx.beginPath();
+      drawRoundRect(ctx, x, y, width, height, borderRadius);
+      ctx.strokeStyle = colorDef.stroke;
+      ctx.lineWidth = style.strokeWidth;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+
+      // Render Numbered Badge at top-left corner
+      rasterizeBadge(ctx, { x, y }, index, style.color, scale);
+      break;
+    }
+
+    case 'blur': {
+      const { x, y, width, height, borderRadius = 2 } = geometry;
+      ctx.beginPath();
+      drawRoundRect(ctx, x, y, width, height, borderRadius);
+      ctx.strokeStyle = colorDef.stroke;
+      ctx.lineWidth = style.strokeWidth;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+
+      // Render Numbered Badge at top-left corner
+      rasterizeBadge(ctx, { x, y }, index, style.color, scale);
       break;
     }
 
@@ -233,8 +295,8 @@ export function rasterizeAnnotation(
       ctx.stroke();
 
       // Render Numbered Badge at 225 deg diagonal apex
-      const badgePos = getBadgePositionForShape(geometry);
-      rasterizeBadge(ctx, badgePos, index, style.color);
+      const badgePos = getBadgePositionForShape(geometry, scale);
+      rasterizeBadge(ctx, badgePos, index, style.color, scale);
       break;
     }
 
@@ -246,7 +308,39 @@ export function rasterizeAnnotation(
         style.strokeWidth
       );
 
-      // Shaft line
+      // Pass 1: Underlay casing with drop shadow (encapsulated in ctx.save / ctx.restore)
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,0.45)';
+      ctx.shadowBlur = 4;
+      ctx.shadowOffsetY = 2;
+
+      // Underlay casing shaft
+      ctx.beginPath();
+      ctx.moveTo(startX, startY);
+      ctx.lineTo(arrowhead.shaftEnd.x, arrowhead.shaftEnd.y);
+      ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+      ctx.lineWidth = style.strokeWidth + 3.5;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+
+      // Underlay casing arrowhead polygon
+      ctx.beginPath();
+      ctx.moveTo(arrowhead.tip.x, arrowhead.tip.y);
+      ctx.lineTo(arrowhead.wingLeft.x, arrowhead.wingLeft.y);
+      ctx.lineTo(arrowhead.notch.x, arrowhead.notch.y);
+      ctx.lineTo(arrowhead.wingRight.x, arrowhead.wingRight.y);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+      ctx.lineWidth = 3.5;
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+
+      ctx.restore();
+
+      // Pass 2: Foreground core shaft and filled arrowhead polygon
+      // Core shaft line
       ctx.beginPath();
       ctx.moveTo(startX, startY);
       ctx.lineTo(arrowhead.shaftEnd.x, arrowhead.shaftEnd.y);
@@ -255,7 +349,7 @@ export function rasterizeAnnotation(
       ctx.lineCap = 'round';
       ctx.stroke();
 
-      // Arrowhead filled polygon
+      // Core arrowhead filled and stroked polygon
       ctx.beginPath();
       ctx.moveTo(arrowhead.tip.x, arrowhead.tip.y);
       ctx.lineTo(arrowhead.wingLeft.x, arrowhead.wingLeft.y);
@@ -269,26 +363,45 @@ export function rasterizeAnnotation(
       ctx.lineJoin = 'round';
       ctx.stroke();
 
-      // Render Numbered Badge at Tail Start
-      rasterizeBadge(ctx, { x: startX, y: startY }, index, style.color);
+      // Pass 3: Render tail-anchored badge at (startX, startY)
+      rasterizeBadge(ctx, { x: startX, y: startY }, index, style.color, scale);
       break;
     }
 
     case 'pin': {
       const { x, y } = geometry;
+      const safeScale = typeof scale === 'number' && Number.isFinite(scale) && scale > 0 ? scale : 1.0;
+      const headRadius = Math.round(14 * safeScale);
+      const pointerHeight = Math.round(20 * safeScale);
+      const headCenterY = y - pointerHeight;
+      const fontSize = Math.round(12 * safeScale);
 
       // Pin Teardrop with subtle drop shadow
       ctx.save();
       ctx.shadowColor = 'rgba(0, 0, 0, 0.35)';
-      ctx.shadowBlur = 4;
+      ctx.shadowBlur = Math.round(4 * safeScale);
       ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 2;
+      ctx.shadowOffsetY = Math.round(2 * safeScale);
 
       ctx.beginPath();
       ctx.moveTo(x, y);
-      ctx.bezierCurveTo(x - 4, y - 8, x - 14, y - 14, x - 14, y - 20);
-      ctx.arc(x, y - 20, 14, Math.PI, 0, false);
-      ctx.bezierCurveTo(x + 14, y - 14, x + 4, y - 8, x, y);
+      ctx.bezierCurveTo(
+        x - Math.round(4 * safeScale),
+        y - Math.round(8 * safeScale),
+        x - headRadius,
+        y - Math.round(14 * safeScale),
+        x - headRadius,
+        headCenterY
+      );
+      ctx.arc(x, headCenterY, headRadius, Math.PI, 0, false);
+      ctx.bezierCurveTo(
+        x + headRadius,
+        y - Math.round(14 * safeScale),
+        x + Math.round(4 * safeScale),
+        y - Math.round(8 * safeScale),
+        x,
+        y
+      );
       ctx.closePath();
 
       ctx.fillStyle = colorDef.badgeBg;
@@ -299,20 +412,34 @@ export function rasterizeAnnotation(
       ctx.save();
       ctx.beginPath();
       ctx.moveTo(x, y);
-      ctx.bezierCurveTo(x - 4, y - 8, x - 14, y - 14, x - 14, y - 20);
-      ctx.arc(x, y - 20, 14, Math.PI, 0, false);
-      ctx.bezierCurveTo(x + 14, y - 14, x + 4, y - 8, x, y);
+      ctx.bezierCurveTo(
+        x - Math.round(4 * safeScale),
+        y - Math.round(8 * safeScale),
+        x - headRadius,
+        y - Math.round(14 * safeScale),
+        x - headRadius,
+        headCenterY
+      );
+      ctx.arc(x, headCenterY, headRadius, Math.PI, 0, false);
+      ctx.bezierCurveTo(
+        x + headRadius,
+        y - Math.round(14 * safeScale),
+        x + Math.round(4 * safeScale),
+        y - Math.round(8 * safeScale),
+        x,
+        y
+      );
       ctx.closePath();
       ctx.strokeStyle = '#FFFFFF';
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = Math.max(1.5, 1.5 * safeScale);
       ctx.stroke();
 
       // Pin Index Text
       ctx.fillStyle = colorDef.badgeText;
-      ctx.font = '700 12px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.font = `700 ${fontSize}px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(String(index), x, y - 20);
+      ctx.fillText(String(index), x, headCenterY);
       ctx.restore();
       break;
     }
@@ -348,6 +475,7 @@ export async function renderCompositeCanvas(
 
   const width = baseImage.naturalWidth;
   const height = baseImage.naturalHeight;
+  const scale = exportOptions.scale ?? computeResolutionScale(width, height);
 
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext('2d');
@@ -368,6 +496,49 @@ export async function renderCompositeCanvas(
   if (baseImage.src) {
     const imgElement = await loadImageElement(baseImage.src);
     ctx.drawImage(imgElement, 0, 0, width, height);
+
+    // 1.2 Destructive Gaussian Blur Baking
+    const blurAnnotations = annotations.filter((ann) => ann.geometry.type === 'blur');
+    for (const ann of blurAnnotations) {
+      const geo = ann.geometry as BlurGeometry;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(geo.x, geo.y, geo.width, geo.height);
+      ctx.clip();
+      if ('filter' in ctx) {
+        ctx.filter = 'blur(12px)';
+        ctx.drawImage(imgElement, 0, 0, width, height);
+      } else {
+        bakeBlurFallback(ctx, imgElement, geo.x, geo.y, geo.width, geo.height);
+      }
+      ctx.restore();
+    }
+  }
+
+  // 1.5 Additive Highlight Cutout
+  const highlightAnnotations = annotations.filter((ann) => ann.geometry.type === 'highlight');
+  if (highlightAnnotations.length > 0) {
+    const offscreenCanvas = createCanvas(width, height);
+    const offscreenCtx = offscreenCanvas.getContext('2d');
+    if (offscreenCtx) {
+      offscreenCtx.imageSmoothingEnabled = true;
+      offscreenCtx.imageSmoothingQuality = 'high';
+
+      offscreenCtx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+      offscreenCtx.fillRect(0, 0, width, height);
+
+      offscreenCtx.globalCompositeOperation = 'destination-out';
+      for (const ann of highlightAnnotations) {
+        const geom = ann.geometry as HighlightGeometry;
+        const rx = geom.borderRadius ?? 4;
+        offscreenCtx.beginPath();
+        drawRoundRect(offscreenCtx, geom.x, geom.y, geom.width, geom.height, rx);
+        offscreenCtx.fillStyle = '#000000';
+        offscreenCtx.fill();
+      }
+
+      ctx.drawImage(offscreenCanvas, 0, 0, width, height);
+    }
   }
 
   // 2. Draw Overlay Image Layers in sequential order beneath annotations
@@ -396,7 +567,7 @@ export async function renderCompositeCanvas(
   // 3. Draw Vector Annotations in sequence order
   const sortedAnnotations = [...annotations].sort((a, b) => a.index - b.index);
   for (const annotation of sortedAnnotations) {
-    rasterizeAnnotation(ctx, annotation);
+    rasterizeAnnotation(ctx, annotation, scale);
   }
 
   return canvas;

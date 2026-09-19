@@ -21,11 +21,11 @@ export default defineConfig({
     css: true,
     testTimeout: 20000,
     include: ['src/**/*.{test,spec}.{ts,tsx}', 'tests/**/*.{test,spec}.{ts,tsx}'],
-    exclude: ['node_modules/**', 'tests/e2e/**'],
+    exclude: ['node_modules/**', 'tests/e2e/test-runner.ts', 'tests/e2e/tier*'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      exclude: ['node_modules/', 'tests/setup.ts', 'tests/e2e/**'],
+      exclude: ['node_modules/', 'tests/setup.ts', 'tests/e2e/test-runner.ts', 'tests/e2e/tier*'],
     },
   },
 });

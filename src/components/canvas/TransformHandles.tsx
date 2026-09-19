@@ -17,6 +17,7 @@ import { screenToImage } from '../../math/coordinates';
 export interface TransformHandlesProps {
   annotation: Annotation;
   zoom?: number;
+  resolutionScale?: number;
   onGeometryChange?: (geometry: AnnotationGeometry) => void;
   onDragStart?: () => void;
   onDragEnd?: (finalGeometry: AnnotationGeometry) => void;
@@ -25,6 +26,7 @@ export interface TransformHandlesProps {
 export const TransformHandles: React.FC<TransformHandlesProps> = ({
   annotation,
   zoom = 1.0,
+  resolutionScale = 1.0,
   onGeometryChange,
   onDragStart,
   onDragEnd,
@@ -45,6 +47,7 @@ export const TransformHandles: React.FC<TransformHandlesProps> = ({
   }
 
   const effectiveZoom = zoom > 0 ? zoom : appState?.viewport.zoom ?? 1.0;
+  const safeScale = typeof resolutionScale === 'number' && Number.isFinite(resolutionScale) && resolutionScale > 0 ? resolutionScale : 1.0;
 
   const isDraggingRef = useRef(false);
   const activeHandleRef = useRef<HandleType | null>(null);
@@ -53,13 +56,13 @@ export const TransformHandles: React.FC<TransformHandlesProps> = ({
   currentGeometryRef.current = annotation.geometry;
 
   const handles = getResizeHandlePositions(annotation.geometry);
-  const bbox = getGeometryBoundingBox(annotation.geometry);
+  const bbox = getGeometryBoundingBox(annotation.geometry, safeScale);
 
-  // Scale-invariant sizing
-  const handleSize = Math.max(8 / effectiveZoom, 3);
-  const hitAreaSize = Math.max(20 / effectiveZoom, 10);
-  const strokeWidth = Math.max(1.5 / effectiveZoom, 0.5);
-  const dashArray = `${4 / effectiveZoom} ${4 / effectiveZoom}`;
+  // Scale-invariant sizing balanced with resolution scale
+  const handleSize = Math.max((8 * safeScale) / effectiveZoom, 3 * safeScale);
+  const hitAreaSize = Math.max((20 * safeScale) / effectiveZoom, 10 * safeScale);
+  const strokeWidth = Math.max((1.5 * safeScale) / effectiveZoom, 0.5 * safeScale);
+  const dashArray = `${(4 * safeScale) / effectiveZoom} ${(4 * safeScale) / effectiveZoom}`;
 
   // Handle Pointer Down on a specific resize handle
   const handleHandlePointerDown = useCallback(
@@ -166,7 +169,11 @@ export const TransformHandles: React.FC<TransformHandlesProps> = ({
     [appCommitGesture, onDragEnd]
   );
 
-  const isBoxOrEllipse = annotation.geometry.type === 'box' || annotation.geometry.type === 'ellipse';
+  const isBoxOrEllipse =
+    annotation.geometry.type === 'box' ||
+    annotation.geometry.type === 'ellipse' ||
+    annotation.geometry.type === 'highlight' ||
+    annotation.geometry.type === 'blur';
 
   return (
     <g

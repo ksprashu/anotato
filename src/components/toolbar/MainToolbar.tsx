@@ -5,6 +5,8 @@ import {
   Circle,
   ArrowUpRight,
   MapPin,
+  Highlighter,
+  EyeOff,
   Hand,
   LucideIcon,
 } from 'lucide-react';
@@ -25,6 +27,8 @@ export const TOOL_ITEMS: ToolItem[] = [
   { id: 'ellipse', label: 'Ellipse', shortcut: 'C', icon: Circle, description: 'Circle / Ellipse tool' },
   { id: 'arrow', label: 'Arrow', shortcut: 'A', icon: ArrowUpRight, description: 'Arrow pointer tool' },
   { id: 'pin', label: 'Pin', shortcut: 'P', icon: MapPin, description: 'Numbered callout pin tool' },
+  { id: 'highlight', label: 'Highlight', shortcut: 'L', icon: Highlighter, description: 'Spotlight highlight focus tool' },
+  { id: 'blur', label: 'Blur / Redact', shortcut: 'B', icon: EyeOff, description: 'Blur / Redact tool' },
   { id: 'pan', label: 'Pan', shortcut: 'H', icon: Hand, description: 'Pan canvas tool (or hold Space)' },
 ];
 

@@ -3,12 +3,15 @@ import { useApp } from '../../state/AppContext';
 import {
   Point,
   AnnotationGeometry,
+  HighlightGeometry,
+  BlurGeometry,
 } from '../../types';
 import {
   normalizeBox,
   calculateEllipseBounds,
   translateGeometry,
 } from '../../math/geometry';
+import { computeResolutionScale } from '../../math/badges';
 import { ShapeRenderer } from './ShapeRenderer';
 import { TransformHandles } from './TransformHandles';
 import { trackAnnotate } from '../../analytics/telemetry';
@@ -45,6 +48,11 @@ export const SvgOverlay: React.FC<SvgOverlayProps> = ({ className = '' }) => {
     selectedAnnotationId,
     hoveredAnnotationId,
   } = state;
+
+  const resolutionScale = image
+    ? computeResolutionScale(image.naturalWidth, image.naturalHeight)
+    : 1.0;
+  const zoom = state.viewport?.zoom ?? 1.0;
 
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -83,7 +91,7 @@ export const SvgOverlay: React.FC<SvgOverlayProps> = ({ className = '' }) => {
     [image]
   );
 
-  const isDrawingTool = ['box', 'ellipse', 'arrow', 'pin'].includes(activeTool);
+  const isDrawingTool = ['box', 'ellipse', 'arrow', 'pin', 'highlight', 'blur'].includes(activeTool);
 
   const handlePointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
     if (!image || e.button !== 0) return;
@@ -101,6 +109,12 @@ export const SvgOverlay: React.FC<SvgOverlayProps> = ({ className = '' }) => {
       switch (activeTool) {
         case 'box':
           initialDraft = { type: 'box', x: startPoint.x, y: startPoint.y, width: 0, height: 0 };
+          break;
+        case 'highlight':
+          initialDraft = { type: 'highlight', x: startPoint.x, y: startPoint.y, width: 0, height: 0 };
+          break;
+        case 'blur':
+          initialDraft = { type: 'blur', x: startPoint.x, y: startPoint.y, width: 0, height: 0 };
           break;
         case 'ellipse':
           initialDraft = { type: 'ellipse', cx: startPoint.x, cy: startPoint.y, rx: 0, ry: 0 };
@@ -153,6 +167,52 @@ export const SvgOverlay: React.FC<SvgOverlayProps> = ({ className = '' }) => {
             };
           }
           updatedDraft = box;
+          break;
+        }
+        case 'highlight': {
+          let box = normalizeBox(drawingState.startPoint, currentPoint);
+          if (e.shiftKey) {
+            const side = Math.max(box.width, box.height);
+            const signX = currentPoint.x >= drawingState.startPoint.x ? 1 : -1;
+            const signY = currentPoint.y >= drawingState.startPoint.y ? 1 : -1;
+            box = {
+              type: 'box',
+              x: signX === 1 ? drawingState.startPoint.x : drawingState.startPoint.x - side,
+              y: signY === 1 ? drawingState.startPoint.y : drawingState.startPoint.y - side,
+              width: side,
+              height: side,
+            };
+          }
+          updatedDraft = {
+            type: 'highlight',
+            x: box.x,
+            y: box.y,
+            width: box.width,
+            height: box.height,
+          };
+          break;
+        }
+        case 'blur': {
+          let box = normalizeBox(drawingState.startPoint, currentPoint);
+          if (e.shiftKey) {
+            const side = Math.max(box.width, box.height);
+            const signX = currentPoint.x >= drawingState.startPoint.x ? 1 : -1;
+            const signY = currentPoint.y >= drawingState.startPoint.y ? 1 : -1;
+            box = {
+              type: 'box',
+              x: signX === 1 ? drawingState.startPoint.x : drawingState.startPoint.x - side,
+              y: signY === 1 ? drawingState.startPoint.y : drawingState.startPoint.y - side,
+              width: side,
+              height: side,
+            };
+          }
+          updatedDraft = {
+            type: 'blur',
+            x: box.x,
+            y: box.y,
+            width: box.width,
+            height: box.height,
+          };
           break;
         }
         case 'ellipse': {
@@ -230,7 +290,7 @@ export const SvgOverlay: React.FC<SvgOverlayProps> = ({ className = '' }) => {
       let isValid = false;
 
       if (draft) {
-        if (draft.type === 'box') {
+        if (draft.type === 'box' || draft.type === 'highlight' || draft.type === 'blur') {
           isValid = draft.width >= 4 || draft.height >= 4;
         } else if (draft.type === 'ellipse') {
           isValid = draft.rx >= 2 || draft.ry >= 2;
@@ -242,12 +302,19 @@ export const SvgOverlay: React.FC<SvgOverlayProps> = ({ className = '' }) => {
       }
 
       if (isValid && draft) {
-        trackAnnotate({
-          shapeType: draft.type,
-          color: activeColor,
-          strokeWidth: activeStrokeWidth,
-          index: annotations.length + 1,
-        });
+        if (
+          draft.type === 'box' ||
+          draft.type === 'ellipse' ||
+          draft.type === 'arrow' ||
+          draft.type === 'pin'
+        ) {
+          trackAnnotate({
+            shapeType: draft.type,
+            color: activeColor,
+            strokeWidth: activeStrokeWidth,
+            index: annotations.length + 1,
+          });
+        }
         dispatch({
           type: 'ADD_ANNOTATION',
           payload: {
@@ -324,6 +391,12 @@ export const SvgOverlay: React.FC<SvgOverlayProps> = ({ className = '' }) => {
   if (!image) return null;
 
   const selectedAnnotation = annotations.find((ann) => ann.id === selectedAnnotationId);
+  const highlightAnnotations = annotations.filter((ann) => ann.geometry.type === 'highlight');
+  const isHighlightDrafting = drawingState.isDrawing && drawingState.draftGeometry?.type === 'highlight';
+  const hasSpotlight = highlightAnnotations.length > 0 || isHighlightDrafting;
+
+  const blurAnnotations = annotations.filter((ann) => ann.geometry.type === 'blur');
+  const isBlurDrafting = drawingState.isDrawing && drawingState.draftGeometry?.type === 'blur';
 
   return (
     <svg
@@ -347,8 +420,72 @@ export const SvgOverlay: React.FC<SvgOverlayProps> = ({ className = '' }) => {
           <feComposite in="SourceGraphic" in2="blur" operator="over" />
         </filter>
         <filter id="badge-drop-shadow" x="-40%" y="-40%" width="180%" height="180%">
-          <feDropShadow dx="0" dy="2" stdDeviation="2.5" floodColor="#000000" floodOpacity="0.45" />
+          <feDropShadow dx="0" dy={2 * resolutionScale} stdDeviation={2.5 * resolutionScale} floodColor="#000000" floodOpacity="0.45" />
         </filter>
+        <filter id="arrow-drop-shadow" x="-30%" y="-30%" width="160%" height="160%">
+          <feDropShadow dx="0" dy={1.5 * resolutionScale} stdDeviation={2 * resolutionScale} floodColor="#000000" floodOpacity="0.45" />
+        </filter>
+
+        {/* Gaussian Blur Filter */}
+        <filter id="gaussian-blur" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="10" edgeMode="duplicate" />
+        </filter>
+
+        {/* Per-Annotation Blur ClipPaths */}
+        {blurAnnotations.map((ann) => {
+          const geom = ann.geometry as BlurGeometry;
+          return (
+            <clipPath key={`blur-clip-${ann.id}`} id={`blur-clip-${ann.id}`}>
+              <rect
+                x={geom.x}
+                y={geom.y}
+                width={geom.width}
+                height={geom.height}
+                rx={geom.borderRadius ?? 2}
+              />
+            </clipPath>
+          );
+        })}
+        {isBlurDrafting && drawingState.draftGeometry && (
+          <clipPath id="blur-clip-draft">
+            <rect
+              x={(drawingState.draftGeometry as BlurGeometry).x}
+              y={(drawingState.draftGeometry as BlurGeometry).y}
+              width={(drawingState.draftGeometry as BlurGeometry).width}
+              height={(drawingState.draftGeometry as BlurGeometry).height}
+              rx={(drawingState.draftGeometry as BlurGeometry).borderRadius ?? 2}
+            />
+          </clipPath>
+        )}
+
+        {/* Unified Spotlight Mask */}
+        <mask id="spotlight-mask" maskUnits="userSpaceOnUse">
+          <rect width="100%" height="100%" fill="white" />
+          {highlightAnnotations.map((ann) => {
+            const geom = ann.geometry as HighlightGeometry;
+            return (
+              <rect
+                key={ann.id}
+                x={geom.x}
+                y={geom.y}
+                width={geom.width}
+                height={geom.height}
+                fill="black"
+                rx={geom.borderRadius ?? 4}
+              />
+            );
+          })}
+          {isHighlightDrafting && drawingState.draftGeometry && (
+            <rect
+              x={(drawingState.draftGeometry as HighlightGeometry).x}
+              y={(drawingState.draftGeometry as HighlightGeometry).y}
+              width={(drawingState.draftGeometry as HighlightGeometry).width}
+              height={(drawingState.draftGeometry as HighlightGeometry).height}
+              fill="black"
+              rx={(drawingState.draftGeometry as HighlightGeometry).borderRadius ?? 4}
+            />
+          )}
+        </mask>
       </defs>
 
       {/* Layer 1: Background Click Catcher for Deselection */}
@@ -366,6 +503,43 @@ export const SvgOverlay: React.FC<SvgOverlayProps> = ({ className = '' }) => {
         }}
       />
 
+      {/* Layer 1.2: Blurred Base Image Slices */}
+      {blurAnnotations.map((ann) => (
+        <image
+          key={`blur-slice-${ann.id}`}
+          data-testid={`blur-slice-${ann.id}`}
+          href={image.src}
+          width={image.naturalWidth}
+          height={image.naturalHeight}
+          filter="url(#gaussian-blur)"
+          clipPath={`url(#blur-clip-${ann.id})`}
+          pointerEvents="none"
+        />
+      ))}
+      {isBlurDrafting && (
+        <image
+          data-testid="blur-slice-draft"
+          href={image.src}
+          width={image.naturalWidth}
+          height={image.naturalHeight}
+          filter="url(#gaussian-blur)"
+          clipPath="url(#blur-clip-draft)"
+          pointerEvents="none"
+        />
+      )}
+
+      {/* Layer 1.5: Spotlight Dimming Backdrop */}
+      {hasSpotlight && (
+        <rect
+          data-testid="spotlight-backdrop"
+          width="100%"
+          height="100%"
+          fill="rgba(0,0,0,0.45)"
+          mask="url(#spotlight-mask)"
+          pointerEvents="none"
+        />
+      )}
+
       {/* Layer 2: Rendered Annotations */}
       {annotations.map((ann) => (
         <ShapeRenderer
@@ -373,6 +547,7 @@ export const SvgOverlay: React.FC<SvgOverlayProps> = ({ className = '' }) => {
           annotation={ann}
           isSelected={ann.id === selectedAnnotationId}
           isHovered={ann.id === hoveredAnnotationId}
+          resolutionScale={resolutionScale}
           onPointerDown={(e) => handleShapePointerDown(e, ann)}
           onClick={(e) => {
             e.stopPropagation();
@@ -400,12 +575,17 @@ export const SvgOverlay: React.FC<SvgOverlayProps> = ({ className = '' }) => {
             index: annotations.length + 1,
           }}
           isDraft={true}
+          resolutionScale={resolutionScale}
         />
       )}
 
       {/* Layer 4: Selection Box & Resize Handles */}
       {selectedAnnotation && activeTool === 'select' && (
-        <TransformHandles annotation={selectedAnnotation} />
+        <TransformHandles
+          annotation={selectedAnnotation}
+          zoom={zoom}
+          resolutionScale={resolutionScale}
+        />
       )}
     </svg>
   );

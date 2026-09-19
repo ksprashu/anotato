@@ -101,7 +101,7 @@ describe('Milestone 5 Challenger 1: Adversarial 1:1 Offscreen Canvas Rasterizer 
 
       const ctx = canvas.getContext('2d')!;
       expect(ctx.drawImage).toHaveBeenCalledWith(expect.anything(), 0, 0, 50, 10000);
-      expect(ctx.fillText).toHaveBeenCalledWith('1', 25, 9930);
+      expect(ctx.fillText).toHaveBeenCalledWith('1', 25, 9870);
     });
 
     it('C1.4: Micro Image (1 x 1 pixel) creates minimal valid canvas and clamps dimensions to >= 1', async () => {

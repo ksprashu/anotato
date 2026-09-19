@@ -2,9 +2,14 @@ import {
   Point,
   BoxGeometry,
   EllipseGeometry,
+  PinGeometry,
   AnnotationGeometry,
   Annotation,
 } from '../types';
+import { type PinDimensions, getPinDimensions } from './badges';
+
+export type { PinDimensions };
+export { getPinDimensions };
 
 export type HandleType =
   | 'nw'
@@ -30,11 +35,15 @@ export interface ArrowheadData {
   tip: Point;
   wingLeft: Point;
   wingRight: Point;
+  left: Point;
+  right: Point;
   notch: Point;
   shaftEnd: Point;
   headingRad: number;
   headLength: number;
+  headWidth: number;
   pathString: string;
+  casingStrokeWidth?: number;
 }
 
 export interface BoundingRect {
@@ -103,7 +112,7 @@ export function calculateEllipseBounds(
 export function calculateArrowhead(
   start: Point,
   end: Point,
-  strokeWidth: number = 3
+  strokeWidth: number = 6
 ): ArrowheadData {
   const dx = end.x - start.x;
   const dy = end.y - start.y;
@@ -111,10 +120,11 @@ export function calculateArrowhead(
   const headingRad = Math.atan2(dy, dx);
   const wingAngleRad = Math.PI / 6; // 30 degrees
 
-  // Base head length scaled by stroke width with min/max clamp
+  // Base head length scaled by stroke width with min/max clamp (28px for default 6px stroke)
   const baseHeadLength = Math.min(Math.max(16 + strokeWidth * 2, 14), 36);
   // If the arrow is short, clamp head length to prevent arrow inversion
   const headLength = length > 0 ? Math.min(baseHeadLength, length * 0.45) : baseHeadLength;
+  const headWidth = headLength;
 
   const wingLeft: Point = {
     x: end.x - headLength * Math.cos(headingRad + wingAngleRad),
@@ -131,7 +141,19 @@ export function calculateArrowhead(
     y: end.y - headLength * 0.75 * Math.sin(headingRad),
   };
 
-  const shaftEnd = length > headLength ? notch : end;
+  // Recess shaftEnd by strokeWidth * 0.5 backward from notch along arrow heading vector
+  // so round linecap touches notch apex without penetrating past it or bleeding into wing cutouts.
+  const clearance = strokeWidth * 0.5;
+  const distToNotch = length - headLength * 0.75;
+  const shaftLength = distToNotch - clearance;
+
+  // Guard short vectors: if total distance is less than or equal to headLength, clamp shaftEnd to start
+  const shaftEnd: Point = (length <= headLength || shaftLength <= 0 || length === 0)
+    ? { x: start.x, y: start.y }
+    : {
+        x: notch.x - clearance * Math.cos(headingRad),
+        y: notch.y - clearance * Math.sin(headingRad),
+      };
 
   const pathString = `M ${end.x} ${end.y} L ${wingLeft.x} ${wingLeft.y} L ${notch.x} ${notch.y} L ${wingRight.x} ${wingRight.y} Z`;
 
@@ -139,20 +161,41 @@ export function calculateArrowhead(
     tip: end,
     wingLeft,
     wingRight,
+    left: wingLeft,
+    right: wingRight,
     notch,
     shaftEnd,
     headingRad,
     headLength,
+    headWidth,
     pathString,
+    casingStrokeWidth: strokeWidth + 3.5,
   };
 }
 
 /**
- * Returns the axis-aligned bounding box (AABB) of any annotation geometry.
+ * Returns the axis-aligned bounding box (AABB) of a callout pin with resolution scale.
  */
-export function getGeometryBoundingBox(geometry: AnnotationGeometry): BoundingRect {
+export function getPinBoundingBox(geometry: PinGeometry, scale: number = 1.0): BoundingRect {
+  const safeScale = typeof scale === 'number' && Number.isFinite(scale) && scale > 0 ? scale : 1.0;
+  const headRadius = Math.round(14 * safeScale);
+  const pointerHeight = Math.round(20 * safeScale);
+  return {
+    x: geometry.x - headRadius,
+    y: geometry.y - (headRadius + pointerHeight),
+    width: 2 * headRadius,
+    height: headRadius + pointerHeight,
+  };
+}
+
+/**
+ * Returns the axis-aligned bounding box (AABB) of any annotation geometry with optional resolution scale.
+ */
+export function getGeometryBoundingBox(geometry: AnnotationGeometry, scale: number = 1.0): BoundingRect {
   switch (geometry.type) {
     case 'box':
+    case 'highlight':
+    case 'blur':
       return {
         x: geometry.x,
         y: geometry.y,
@@ -179,12 +222,7 @@ export function getGeometryBoundingBox(geometry: AnnotationGeometry): BoundingRe
       };
     }
     case 'pin':
-      return {
-        x: geometry.x - 14,
-        y: geometry.y - 34,
-        width: 28,
-        height: 34,
-      };
+      return getPinBoundingBox(geometry, scale);
   }
 }
 
@@ -193,7 +231,9 @@ export function getGeometryBoundingBox(geometry: AnnotationGeometry): BoundingRe
  */
 export function getResizeHandlePositions(geometry: AnnotationGeometry): ResizeHandle[] {
   switch (geometry.type) {
-    case 'box': {
+    case 'box':
+    case 'highlight':
+    case 'blur': {
       const { x, y, width: w, height: h } = geometry;
       return [
         { id: 'nw', x, y, cursor: 'nwse-resize' },
@@ -255,17 +295,20 @@ export function pointToSegmentDistance(point: Point, start: Point, end: Point): 
 }
 
 /**
- * Hit-tests whether a point in image space intersects an annotation.
+ * Hit-tests whether a point in image space intersects an annotation, with resolution scale support.
  */
 export function hitTestAnnotation(
   point: Point,
   annotation: Annotation | AnnotationGeometry,
-  tolerance: number = 6
+  tolerance: number = 6,
+  scale: number = 1.0
 ): boolean {
   const geom: AnnotationGeometry = 'geometry' in annotation ? annotation.geometry : annotation;
 
   switch (geom.type) {
-    case 'box': {
+    case 'box':
+    case 'highlight':
+    case 'blur': {
       const { x, y, width, height } = geom;
       const inBounds =
         point.x >= x - tolerance &&
@@ -293,10 +336,18 @@ export function hitTestAnnotation(
       return dist <= tolerance;
     }
     case 'pin': {
-      // Check head circle (radius 14 at y - 20) and anchor point
-      const distHead = Math.hypot(point.x - geom.x, point.y - (geom.y - 20));
+      const safeScale = typeof scale === 'number' && Number.isFinite(scale) && scale > 0 ? scale : 1.0;
+      const headRadius = Math.round(14 * safeScale);
+      const pointerHeight = Math.round(20 * safeScale);
+      const headCenterY = geom.y - pointerHeight;
+      const distHead = Math.hypot(point.x - geom.x, point.y - headCenterY);
       const distAnchor = Math.hypot(point.x - geom.x, point.y - geom.y);
-      return distHead <= 14 + tolerance || distAnchor <= tolerance;
+      const distStem = pointToSegmentDistance(
+        point,
+        { x: geom.x, y: geom.y },
+        { x: geom.x, y: headCenterY }
+      );
+      return distHead <= headRadius + tolerance || distAnchor <= tolerance || distStem <= tolerance;
     }
   }
 }
@@ -328,7 +379,9 @@ export function applyHandleResize(
   constrainAspect: boolean = false
 ): AnnotationGeometry {
   switch (initialGeometry.type) {
-    case 'box': {
+    case 'box':
+    case 'highlight':
+    case 'blur': {
       let { x, y, width, height } = initialGeometry;
       const right = x + width;
       const bottom = y + height;
@@ -383,11 +436,12 @@ export function applyHandleResize(
       }
 
       return {
-        type: 'box',
+        type: initialGeometry.type,
         x: normX,
         y: normY,
         width: Math.max(normW, 2),
         height: Math.max(normH, 2),
+        ...(initialGeometry.borderRadius !== undefined ? { borderRadius: initialGeometry.borderRadius } : {}),
       };
     }
 
@@ -446,6 +500,8 @@ export function translateGeometry(
 ): AnnotationGeometry {
   switch (geometry.type) {
     case 'box':
+    case 'highlight':
+    case 'blur':
       return {
         ...geometry,
         x: geometry.x + deltaX,

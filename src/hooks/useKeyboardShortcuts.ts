@@ -195,9 +195,11 @@ export function useKeyboardShortcuts(
         case 'v':
           nextTool = 'select';
           break;
-        case 'b':
         case 'r':
           nextTool = 'box';
+          break;
+        case 'b':
+          nextTool = 'blur';
           break;
         case 'c':
         case 'o':
@@ -208,6 +210,9 @@ export function useKeyboardShortcuts(
           break;
         case 'p':
           nextTool = 'pin';
+          break;
+        case 'l':
+          nextTool = 'highlight';
           break;
         case 'h':
           nextTool = 'pan';

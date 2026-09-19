@@ -42,9 +42,15 @@ describe('useKeyboardShortcuts & Input Focus Exclusion', () => {
         wrapper: createWrapper(undefined, React.createElement(TestComponent, null)),
       });
 
-      // Press 'b' -> box tool
+      // Press 'b' -> blur tool
       act(() => {
         window.dispatchEvent(new KeyboardEvent('keydown', { key: 'b', bubbles: true }));
+      });
+      expect(stateTracker?.activeTool).toBe('blur');
+
+      // Press 'r' -> box tool
+      act(() => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'r', bubbles: true }));
       });
       expect(stateTracker?.activeTool).toBe('box');
 

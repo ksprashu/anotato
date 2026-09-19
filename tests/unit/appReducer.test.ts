@@ -5,6 +5,9 @@ import {
   reindexAnnotations,
   normalizeBoxGeometry,
   normalizeEllipseGeometry,
+  normalizeHighlightGeometry,
+  normalizeBlurGeometry,
+  normalizeGeometry,
 } from '../../src/state/appReducer';
 import {
   createInitialHistory,
@@ -19,6 +22,8 @@ import {
 import {
   AppState,
   BoxGeometry,
+  HighlightGeometry,
+  BlurGeometry,
   EllipseGeometry,
   ArrowGeometry,
   PinGeometry,
@@ -444,6 +449,341 @@ describe('appReducer & State Engine', () => {
 
       expect(rollback).toEqual(initialSnap);
       expect(txManager.isTransactionActive()).toBe(false);
+    });
+  });
+
+  describe('Suite 6: Highlight / Spotlight Tool Reducer Invariants', () => {
+    it('T6.1: normalizeHighlightGeometry normalizes inverted drag coordinates (negative width & height)', () => {
+      const inverted: HighlightGeometry = {
+        type: 'highlight',
+        x: 400,
+        y: 300,
+        width: -250,
+        height: -180,
+      };
+      const normalized = normalizeHighlightGeometry(inverted);
+      expect(normalized).toEqual({
+        type: 'highlight',
+        x: 150,
+        y: 120,
+        width: 250,
+        height: 180,
+      });
+    });
+
+    it('T6.2: normalizeGeometry with type highlight normalizes bounds correctly', () => {
+      const inverted: HighlightGeometry = {
+        type: 'highlight',
+        x: 100,
+        y: 200,
+        width: -50,
+        height: 80,
+      };
+      const normalized = normalizeGeometry(inverted) as HighlightGeometry;
+      expect(normalized.type).toBe('highlight');
+      expect(normalized.x).toBe(50);
+      expect(normalized.y).toBe(200);
+      expect(normalized.width).toBe(50);
+      expect(normalized.height).toBe(80);
+    });
+
+    it('T6.3: SET_ACTIVE_TOOL to highlight updates activeTool state', () => {
+      const state = appReducer(initialState, {
+        type: 'SET_ACTIVE_TOOL',
+        payload: 'highlight',
+      });
+      expect(state.activeTool).toBe('highlight');
+    });
+
+    it('T6.4: ADD_ANNOTATION with HighlightGeometry assigns correct 1..N index and selects it', () => {
+      const highlightGeom: HighlightGeometry = {
+        type: 'highlight',
+        x: 100,
+        y: 100,
+        width: 200,
+        height: 150,
+      };
+      const state = appReducer(initialState, {
+        type: 'ADD_ANNOTATION',
+        payload: {
+          geometry: highlightGeom,
+          note: 'Spotlight main headline',
+        },
+      });
+
+      expect(state.annotations).toHaveLength(1);
+      expect(state.annotations[0].index).toBe(1);
+      expect(state.annotations[0].geometry).toEqual(highlightGeom);
+      expect(state.annotations[0].note).toBe('Spotlight main headline');
+      expect(state.selectedAnnotationId).toBe(state.annotations[0].id);
+    });
+
+    it('T6.5: UPDATE_ANNOTATION_GEOMETRY preserves highlight type and updates position', () => {
+      const initialGeom: HighlightGeometry = {
+        type: 'highlight',
+        x: 50,
+        y: 50,
+        width: 100,
+        height: 100,
+      };
+      let state = appReducer(initialState, {
+        type: 'ADD_ANNOTATION',
+        payload: { id: 'hl-1', geometry: initialGeom },
+      });
+
+      const movedGeom: HighlightGeometry = {
+        type: 'highlight',
+        x: 80,
+        y: 120,
+        width: 150,
+        height: 130,
+      };
+      state = appReducer(state, {
+        type: 'UPDATE_ANNOTATION_GEOMETRY',
+        payload: { id: 'hl-1', geometry: movedGeom },
+      });
+
+      expect(state.annotations[0].geometry).toEqual(movedGeom);
+    });
+
+    it('T6.6: Deleting a highlight annotation re-indexes remaining annotations sequentially (1..N)', () => {
+      let state = initialState;
+      state = appReducer(state, {
+        type: 'ADD_ANNOTATION',
+        payload: { id: 'a1', geometry: sampleBox },
+      });
+      state = appReducer(state, {
+        type: 'ADD_ANNOTATION',
+        payload: {
+          id: 'hl-1',
+          geometry: { type: 'highlight', x: 200, y: 200, width: 100, height: 100 },
+        },
+      });
+      state = appReducer(state, {
+        type: 'ADD_ANNOTATION',
+        payload: { id: 'a3', geometry: samplePin },
+      });
+
+      expect(state.annotations.map((a) => a.index)).toEqual([1, 2, 3]);
+
+      state = appReducer(state, {
+        type: 'DELETE_ANNOTATION',
+        payload: { id: 'hl-1' },
+      });
+
+      expect(state.annotations).toHaveLength(2);
+      expect(state.annotations[0].id).toBe('a1');
+      expect(state.annotations[0].index).toBe(1);
+      expect(state.annotations[1].id).toBe('a3');
+      expect(state.annotations[1].index).toBe(2);
+    });
+
+    it('T6.7: Undo/Redo restores highlight geometry moves correctly and detects snapshot differences', () => {
+      const snap1 = {
+        annotations: [
+          {
+            id: 'hl-1',
+            index: 1,
+            geometry: { type: 'highlight' as const, x: 50, y: 50, width: 100, height: 100 },
+            style: { color: 'amber' as const, strokeWidth: 3, fillOpacity: 0.15 },
+            note: '',
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        ],
+        selectedAnnotationId: 'hl-1',
+      };
+      let history = createInitialHistory(snap1.annotations, snap1.selectedAnnotationId);
+
+      const snap2 = {
+        annotations: [
+          {
+            id: 'hl-1',
+            index: 1,
+            geometry: { type: 'highlight' as const, x: 150, y: 150, width: 200, height: 200 },
+            style: { color: 'amber' as const, strokeWidth: 3, fillOpacity: 0.15 },
+            note: '',
+            createdAt: 1,
+            updatedAt: 2,
+          },
+        ],
+        selectedAnnotationId: 'hl-1',
+      };
+      history = pushHistory(history, snap2);
+
+      expect(history.past).toHaveLength(1);
+      expect((history.present.annotations[0].geometry as HighlightGeometry).x).toBe(150);
+
+      history = undo(history);
+      expect((history.present.annotations[0].geometry as HighlightGeometry).x).toBe(50);
+
+      history = redo(history);
+      expect((history.present.annotations[0].geometry as HighlightGeometry).x).toBe(150);
+    });
+  });
+
+  // =========================================================================
+  // Suite 7: Blur Tool Reducer & Geometry Normalization (Milestone M3)
+  // =========================================================================
+  describe('Suite 7: Blur Tool Reducer & Geometry Normalization', () => {
+    it('T7.1: normalizeBlurGeometry flips negative width and height to positive values', () => {
+      const invertedBlur: BlurGeometry = {
+        type: 'blur',
+        x: 400,
+        y: 300,
+        width: -200,
+        height: -150,
+      };
+      const normalized = normalizeBlurGeometry(invertedBlur);
+
+      expect(normalized).toEqual({
+        type: 'blur',
+        x: 200,
+        y: 150,
+        width: 200,
+        height: 150,
+      });
+    });
+
+    it('T7.2: normalizeGeometry routes blur type through normalizeBlurGeometry', () => {
+      const raw: BlurGeometry = {
+        type: 'blur',
+        x: 500,
+        y: 200,
+        width: -100,
+        height: 50,
+      };
+      const result = normalizeGeometry(raw) as BlurGeometry;
+
+      expect(result.x).toBe(400);
+      expect(result.width).toBe(100);
+      expect(result.height).toBe(50);
+    });
+
+    it('T7.3: SET_ACTIVE_TOOL handles blur tool selection', () => {
+      let state = initialState;
+      state = appReducer(state, { type: 'SET_ACTIVE_TOOL', payload: 'blur' });
+      expect(state.activeTool).toBe('blur');
+    });
+
+    it('T7.4: ADD_ANNOTATION adds blur annotation with auto-incremented index', () => {
+      let state = initialState;
+      const blurGeo: BlurGeometry = { type: 'blur', x: 50, y: 80, width: 250, height: 120 };
+
+      state = appReducer(state, {
+        type: 'ADD_ANNOTATION',
+        payload: {
+          id: 'blur-1',
+          geometry: blurGeo,
+          note: 'Sensitive data redaction',
+        },
+      });
+
+      expect(state.annotations).toHaveLength(1);
+      expect(state.annotations[0].id).toBe('blur-1');
+      expect(state.annotations[0].index).toBe(1);
+      expect(state.annotations[0].geometry.type).toBe('blur');
+      expect(state.selectedAnnotationId).toBe('blur-1');
+    });
+
+    it('T7.5: UPDATE_ANNOTATION_GEOMETRY normalizes modified blur geometry', () => {
+      let state = initialState;
+      state = appReducer(state, {
+        type: 'ADD_ANNOTATION',
+        payload: {
+          id: 'blur-1',
+          geometry: { type: 'blur', x: 100, y: 100, width: 200, height: 100 },
+        },
+      });
+
+      state = appReducer(state, {
+        type: 'UPDATE_ANNOTATION_GEOMETRY',
+        payload: {
+          id: 'blur-1',
+          geometry: { type: 'blur', x: 300, y: 200, width: -150, height: -80 },
+        },
+      });
+
+      const updated = state.annotations[0].geometry as BlurGeometry;
+      expect(updated.x).toBe(150);
+      expect(updated.y).toBe(120);
+      expect(updated.width).toBe(150);
+      expect(updated.height).toBe(80);
+    });
+
+    it('T7.6: Re-indexes blur annotations dynamically when mixed shapes are deleted', () => {
+      let state = initialState;
+      state = appReducer(state, {
+        type: 'ADD_ANNOTATION',
+        payload: { id: 'a1', geometry: sampleBox },
+      });
+      state = appReducer(state, {
+        type: 'ADD_ANNOTATION',
+        payload: {
+          id: 'blur-1',
+          geometry: { type: 'blur', x: 200, y: 200, width: 100, height: 100 },
+        },
+      });
+      state = appReducer(state, {
+        type: 'ADD_ANNOTATION',
+        payload: { id: 'a3', geometry: samplePin },
+      });
+
+      expect(state.annotations.map((a) => a.index)).toEqual([1, 2, 3]);
+
+      state = appReducer(state, {
+        type: 'DELETE_ANNOTATION',
+        payload: { id: 'blur-1' },
+      });
+
+      expect(state.annotations).toHaveLength(2);
+      expect(state.annotations[0].id).toBe('a1');
+      expect(state.annotations[0].index).toBe(1);
+      expect(state.annotations[1].id).toBe('a3');
+      expect(state.annotations[1].index).toBe(2);
+    });
+
+    it('T7.7: Undo/Redo restores blur geometry moves correctly and detects snapshot differences', () => {
+      const snap1 = {
+        annotations: [
+          {
+            id: 'blur-1',
+            index: 1,
+            geometry: { type: 'blur' as const, x: 50, y: 50, width: 100, height: 100 },
+            style: { color: 'amber' as const, strokeWidth: 3, fillOpacity: 0.15 },
+            note: '',
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        ],
+        selectedAnnotationId: 'blur-1',
+      };
+      let history = createInitialHistory(snap1.annotations, snap1.selectedAnnotationId);
+
+      const snap2 = {
+        annotations: [
+          {
+            id: 'blur-1',
+            index: 1,
+            geometry: { type: 'blur' as const, x: 150, y: 150, width: 200, height: 200 },
+            style: { color: 'amber' as const, strokeWidth: 3, fillOpacity: 0.15 },
+            note: '',
+            createdAt: 1,
+            updatedAt: 2,
+          },
+        ],
+        selectedAnnotationId: 'blur-1',
+      };
+      history = pushHistory(history, snap2);
+
+      expect(history.past).toHaveLength(1);
+      expect((history.present.annotations[0].geometry as BlurGeometry).x).toBe(150);
+
+      history = undo(history);
+      expect((history.present.annotations[0].geometry as BlurGeometry).x).toBe(50);
+
+      history = redo(history);
+      expect((history.present.annotations[0].geometry as BlurGeometry).x).toBe(150);
     });
   });
 });

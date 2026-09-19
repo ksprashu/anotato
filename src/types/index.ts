@@ -3,7 +3,7 @@
  * Strict type definitions for geometries, styling, annotations, base images, viewport, and actions.
  */
 
-export type ToolType = 'select' | 'pan' | 'box' | 'ellipse' | 'arrow' | 'pin';
+export type ToolType = 'select' | 'pan' | 'box' | 'ellipse' | 'arrow' | 'pin' | 'highlight' | 'blur';
 
 export type PresetColor = 'red' | 'amber' | 'green' | 'cyan' | 'purple';
 
@@ -24,6 +24,24 @@ export interface Point {
 
 export interface BoxGeometry {
   type: 'box';
+  x: number; // Top-left X in natural image pixels
+  y: number; // Top-left Y in natural image pixels
+  width: number; // Positive width in natural image pixels
+  height: number; // Positive height in natural image pixels
+  borderRadius?: number;
+}
+
+export interface HighlightGeometry {
+  type: 'highlight';
+  x: number; // Top-left X in natural image pixels
+  y: number; // Top-left Y in natural image pixels
+  width: number; // Positive width in natural image pixels
+  height: number; // Positive height in natural image pixels
+  borderRadius?: number;
+}
+
+export interface BlurGeometry {
+  type: 'blur';
   x: number; // Top-left X in natural image pixels
   y: number; // Top-left Y in natural image pixels
   width: number; // Positive width in natural image pixels
@@ -53,7 +71,13 @@ export interface PinGeometry {
   y: number; // Pin anchor tip Y in natural image pixels
 }
 
-export type AnnotationGeometry = BoxGeometry | EllipseGeometry | ArrowGeometry | PinGeometry;
+export type AnnotationGeometry =
+  | BoxGeometry
+  | HighlightGeometry
+  | BlurGeometry
+  | EllipseGeometry
+  | ArrowGeometry
+  | PinGeometry;
 
 export interface AnnotationStyle {
   color: PresetColor;
