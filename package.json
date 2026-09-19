@@ -10,6 +10,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:e2e": "vitest run tests/e2e/annotely_features.test.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint ."
   },

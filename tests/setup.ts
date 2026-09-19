@@ -19,10 +19,17 @@ afterEach(() => {
 
 // Mock Canvas 2D Rendering Context
 const createMockContext2D = (): CanvasRenderingContext2D => {
+  let filterValue = 'none';
   const ctx = {
     canvas: null as unknown as HTMLCanvasElement,
     fillStyle: '#000000',
     strokeStyle: '#000000',
+    get filter() {
+      return filterValue;
+    },
+    set filter(val: string) {
+      filterValue = val;
+    },
     lineWidth: 1,
     lineCap: 'butt' as CanvasLineCap,
     lineJoin: 'miter' as CanvasLineJoin,
@@ -43,6 +50,7 @@ const createMockContext2D = (): CanvasRenderingContext2D => {
     clearRect: vi.fn(),
     beginPath: vi.fn(),
     closePath: vi.fn(),
+    clip: vi.fn(),
     moveTo: vi.fn(),
     lineTo: vi.fn(),
     arc: vi.fn(),

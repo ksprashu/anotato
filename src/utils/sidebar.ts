@@ -3,6 +3,8 @@ import {
   Circle,
   ArrowUpRight,
   MapPin,
+  Highlighter,
+  EyeOff,
   LucideIcon,
 } from 'lucide-react';
 import { AnnotationGeometry } from '../types';
@@ -37,6 +39,18 @@ export function getShapeTypeMeta(type: AnnotationGeometry['type']): ShapeTypeMet
         label: 'Box',
         icon: Square,
         badgeStyle: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
+      };
+    case 'highlight':
+      return {
+        label: 'Highlight',
+        icon: Highlighter,
+        badgeStyle: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
+      };
+    case 'blur':
+      return {
+        label: 'Blur',
+        icon: EyeOff,
+        badgeStyle: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20',
       };
     case 'ellipse':
       return {

@@ -170,13 +170,19 @@ describe('Integration: Theming, Accessibility, Polish & Shortcuts Modal', () => 
     it('T4.1: Single-letter tool shortcuts switch active tool when not typing in input', () => {
       render(<App />);
       const boxBtn = screen.getByTestId('tool-btn-box');
+      const blurBtn = screen.getByTestId('tool-btn-blur');
       expect(boxBtn).toHaveAttribute('aria-pressed', 'false');
+      expect(blurBtn).toHaveAttribute('aria-pressed', 'false');
 
-      fireEvent.keyDown(window, { key: 'b', code: 'KeyB' });
+      fireEvent.keyDown(window, { key: 'r', code: 'KeyR' });
       expect(boxBtn).toHaveAttribute('aria-pressed', 'true');
 
-      fireEvent.keyDown(window, { key: 'v', code: 'KeyV' });
+      fireEvent.keyDown(window, { key: 'b', code: 'KeyB' });
+      expect(blurBtn).toHaveAttribute('aria-pressed', 'true');
       expect(boxBtn).toHaveAttribute('aria-pressed', 'false');
+
+      fireEvent.keyDown(window, { key: 'v', code: 'KeyV' });
+      expect(blurBtn).toHaveAttribute('aria-pressed', 'false');
       expect(screen.getByTestId('tool-btn-select')).toHaveAttribute('aria-pressed', 'true');
     });
 
@@ -187,6 +193,7 @@ describe('Integration: Theming, Accessibility, Polish & Shortcuts Modal', () => 
       input.focus();
 
       fireEvent.keyDown(input, { key: 'b', code: 'KeyB' });
+      expect(screen.getByTestId('tool-btn-blur')).toHaveAttribute('aria-pressed', 'false');
       expect(screen.getByTestId('tool-btn-box')).toHaveAttribute('aria-pressed', 'false');
 
       fireEvent.keyDown(input, { key: '?', code: 'Slash' });

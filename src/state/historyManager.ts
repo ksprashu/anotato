@@ -64,6 +64,14 @@ export function isSnapshotEqual(a: HistorySnapshot, b: HistorySnapshot): boolean
       if (gA.x !== gB.x || gA.y !== gB.y || gA.width !== gB.width || gA.height !== gB.height) {
         return false;
       }
+    } else if (gA.type === 'highlight' && gB.type === 'highlight') {
+      if (gA.x !== gB.x || gA.y !== gB.y || gA.width !== gB.width || gA.height !== gB.height) {
+        return false;
+      }
+    } else if (gA.type === 'blur' && gB.type === 'blur') {
+      if (gA.x !== gB.x || gA.y !== gB.y || gA.width !== gB.width || gA.height !== gB.height) {
+        return false;
+      }
     } else if (gA.type === 'ellipse' && gB.type === 'ellipse') {
       if (gA.cx !== gB.cx || gA.cy !== gB.cy || gA.rx !== gB.rx || gA.ry !== gB.ry) {
         return false;

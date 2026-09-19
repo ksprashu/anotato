@@ -62,3 +62,49 @@ Integrity mode: demo
 ### Automated Tests & Quality
 - [ ] Automated unit and component test suite covering canvas annotation state management, numbering sequence calculations, undo/redo reducer, and export payload generation.
 - [ ] Production build succeeds with zero TypeScript errors and zero linter warnings.
+
+## Follow-up — 2026-09-13T16:31:09Z
+
+Enhance the Anotato screenshot annotation web application with professional annotation tools inspired by Annotely: a smooth Gaussian privacy blur/redact tool, an additive multi-region highlight/spotlight focus mode, a polished thicker arrow shape, and resolution-aware scalable badge numbering.
+
+Working directory: c:\Users\kspra\code\github\anotato-annotely-features
+Integrity mode: development
+
+## Requirements
+
+### R1. Polished Thicker Arrow Tool
+- Upgrade arrow annotations with a thicker, bolder shaft and a sharp, well-proportioned arrowhead geometry matching Annotely's visual quality.
+- Render with high-contrast outlines/subtle shadows so arrows remain distinct and visible across both dark and light image content.
+- Preserve tail-anchored badge positioning and interactive endpoint transform handles.
+
+### R2. Additive Highlight / Spotlight Tool
+- Provide a Highlight tool that keeps target regions clearly illuminated while dimming/graying out the unselected remainder of the image.
+- Support additive multi-region highlighting: when multiple highlight regions are drawn, all of them remain highlighted simultaneously without overlapping dimming artifacts.
+- Ensure the highlight focus effect renders consistently in both the interactive canvas workspace and the exported 2D canvas (PNG download and clipboard copy).
+
+### R3. Smooth Blur / Redact Tool
+- Provide a Blur / Redact tool to obscure sensitive information (credentials, personal details, numbers) on the screenshot.
+- Apply a smooth Gaussian blur to the bounded region on the interactive canvas.
+- Ensure the blurred region is baked into exported images so underlying sensitive text/pixels cannot be recovered.
+
+### R4. Resolution-Aware Scalable Badge and Pin Numbering
+- Automatically scale annotation badge numbers, pins, and selection handles relative to the base image's natural resolution (e.g. 2K/4K/Retina screenshots) so badges never appear minuscule on large images.
+- Maintain readable minimum dimensions and balanced proportions across all zoom levels and display scales.
+
+## Verification Resources
+- Test suite: `npm run test` (Vitest unit and component tests)
+- Typecheck: `npm run typecheck` (`tsc --noEmit`)
+- Linting: `npm run lint` (`eslint .`)
+
+## Acceptance Criteria
+
+### Tool Functionality & Parity
+- [ ] Arrow tool renders with a thick shaft and polished arrowhead geometry in both the live SVG canvas and canvas export, with contrast outline for readability.
+- [ ] Highlight tool allows drawing multiple rectangular focus regions where all highlighted areas remain undimmed and the rest of the image is dimmed with a uniform semi-transparent backdrop.
+- [ ] Blur tool obscures image pixels within defined regions using smooth Gaussian blur, both on the interactive canvas and in exported PNG/clipboard images.
+- [ ] High-resolution images (e.g. 2560x1440, 3840x2160) scale badge numbering and pin markers proportionally so badge text is easily readable at 100% zoom.
+
+### Regression & Integrity Verification
+- [ ] All existing automated tests in `npm run test`, `npm run typecheck`, and `npm run lint` pass without errors.
+- [ ] New automated unit/integration tests cover arrow path generation, highlight mask composition, blur canvas drawing, and resolution-based badge scale calculations.
+- [ ] Canvas export and clipboard copy accurately replicate arrows, highlight cutouts, blurs, and scaled badges without visual drift or clipping.

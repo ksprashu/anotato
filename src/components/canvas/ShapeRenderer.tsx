@@ -15,6 +15,7 @@ export interface ShapeRendererProps {
   isSelected?: boolean;
   isHovered?: boolean;
   isDraft?: boolean;
+  resolutionScale?: number;
   onClick?: (e: React.MouseEvent) => void;
   onPointerDown?: (e: React.PointerEvent) => void;
   onMouseEnter?: () => void;
@@ -37,6 +38,7 @@ export const ShapeRenderer: React.FC<ShapeRendererProps> = ({
   isSelected = false,
   isHovered = false,
   isDraft = false,
+  resolutionScale = 1.0,
   onClick,
   onPointerDown,
   onMouseEnter,
@@ -55,6 +57,100 @@ export const ShapeRenderer: React.FC<ShapeRendererProps> = ({
   };
 
   switch (geometry.type) {
+    case 'highlight': {
+      const { x, y, width, height, borderRadius = 4 } = geometry;
+      const badgePos = { x, y };
+
+      return (
+        <g data-testid="shape-highlight" {...groupProps}>
+          {(isHovered || isSelected) && (
+            <rect
+              x={x - 3}
+              y={y - 3}
+              width={width + 6}
+              height={height + 6}
+              rx={borderRadius + 2}
+              ry={borderRadius + 2}
+              fill="none"
+              stroke={colorDef.stroke}
+              strokeWidth={style.strokeWidth + 6}
+              strokeOpacity={isSelected ? 0.5 : 0.3}
+              className="pointer-events-none"
+            />
+          )}
+          <rect
+            x={x}
+            y={y}
+            width={width}
+            height={height}
+            rx={borderRadius}
+            ry={borderRadius}
+            fill="transparent"
+            stroke={isHovered || isSelected ? colorDef.stroke : (isDraft ? colorDef.stroke : 'rgba(255, 255, 255, 0.4)')}
+            strokeWidth={style.strokeWidth}
+            strokeDasharray={isDraft ? '6 4' : (isHovered || isSelected ? '4 4' : undefined)}
+          />
+          <BadgeRenderer
+            annotation={annotation.id ? { id: annotation.id, index, geometry, style, note: '', createdAt: 0, updatedAt: 0 } : undefined}
+            index={index}
+            position={badgePos}
+            color={style.color}
+            isSelected={isSelected}
+            isHovered={isHovered}
+            isDraft={isDraft}
+            scale={resolutionScale}
+          />
+        </g>
+      );
+    }
+
+    case 'blur': {
+      const { x, y, width, height, borderRadius = 2 } = geometry;
+      const badgePos = { x, y };
+
+      return (
+        <g data-testid="shape-blur" {...groupProps}>
+          {(isHovered || isSelected) && (
+            <rect
+              x={x - 3}
+              y={y - 3}
+              width={width + 6}
+              height={height + 6}
+              rx={borderRadius + 2}
+              ry={borderRadius + 2}
+              fill="none"
+              stroke={colorDef.stroke}
+              strokeWidth={style.strokeWidth + 6}
+              strokeOpacity={isSelected ? 0.5 : 0.3}
+              className="pointer-events-none"
+            />
+          )}
+          <rect
+            x={x}
+            y={y}
+            width={width}
+            height={height}
+            rx={borderRadius}
+            ry={borderRadius}
+            fill="transparent"
+            stroke={isHovered || isSelected || isDraft ? colorDef.stroke : 'rgba(255, 255, 255, 0.45)'}
+            strokeWidth={style.strokeWidth}
+            strokeDasharray={isHovered || isSelected || isDraft ? '4 4' : undefined}
+          />
+          <BadgeRenderer
+            annotation={annotation.id ? { id: annotation.id, index, geometry, style, note: '', createdAt: 0, updatedAt: 0 } : undefined}
+            index={index}
+            position={badgePos}
+            color={style.color}
+            isSelected={isSelected}
+            isHovered={isHovered}
+            isDraft={isDraft}
+            scale={resolutionScale}
+          />
+        </g>
+      );
+    }
+
     case 'box': {
       const { x, y, width, height, borderRadius = 4 } = geometry;
       const badgePos = { x, y };
@@ -96,6 +192,7 @@ export const ShapeRenderer: React.FC<ShapeRendererProps> = ({
             isSelected={isSelected}
             isHovered={isHovered}
             isDraft={isDraft}
+            scale={resolutionScale}
           />
         </g>
       );
@@ -138,6 +235,7 @@ export const ShapeRenderer: React.FC<ShapeRendererProps> = ({
             isSelected={isSelected}
             isHovered={isHovered}
             isDraft={isDraft}
+            scale={resolutionScale}
           />
         </g>
       );
@@ -163,23 +261,45 @@ export const ShapeRenderer: React.FC<ShapeRendererProps> = ({
               className="pointer-events-none"
             />
           )}
-          <line
-            x1={startX}
-            y1={startY}
-            x2={arrowhead.shaftEnd.x}
-            y2={arrowhead.shaftEnd.y}
-            stroke={colorDef.stroke}
-            strokeWidth={style.strokeWidth}
-            strokeLinecap="round"
-            strokeDasharray={isDraft ? '6 4' : undefined}
-          />
-          <path
-            d={arrowhead.pathString}
-            fill={colorDef.stroke}
-            stroke={colorDef.stroke}
-            strokeWidth={1}
-            strokeLinejoin="round"
-          />
+          <g data-testid="arrow-graphic" filter="url(#arrow-drop-shadow)">
+            {/* Underlay casing shaft */}
+            <line
+              x1={startX}
+              y1={startY}
+              x2={arrowhead.shaftEnd.x}
+              y2={arrowhead.shaftEnd.y}
+              stroke="rgba(0,0,0,0.55)"
+              strokeWidth={style.strokeWidth + 3.5}
+              strokeLinecap="round"
+            />
+            {/* Underlay casing arrowhead polygon */}
+            <polygon
+              points={`${arrowhead.tip.x},${arrowhead.tip.y} ${arrowhead.left.x},${arrowhead.left.y} ${arrowhead.notch.x},${arrowhead.notch.y} ${arrowhead.right.x},${arrowhead.right.y}`}
+              stroke="rgba(0,0,0,0.55)"
+              fill="rgba(0,0,0,0.55)"
+              strokeWidth={3.5}
+              strokeLinejoin="round"
+            />
+            {/* Foreground shaft line */}
+            <line
+              x1={startX}
+              y1={startY}
+              x2={arrowhead.shaftEnd.x}
+              y2={arrowhead.shaftEnd.y}
+              stroke={colorDef.stroke}
+              strokeWidth={style.strokeWidth}
+              strokeLinecap="round"
+              strokeDasharray={isDraft ? '6 4' : undefined}
+            />
+            {/* Foreground arrowhead polygon */}
+            <path
+              d={arrowhead.pathString}
+              fill={colorDef.stroke}
+              stroke={colorDef.stroke}
+              strokeWidth={1}
+              strokeLinejoin="round"
+            />
+          </g>
           <BadgeRenderer
             annotation={annotation.id ? { id: annotation.id, index, geometry, style, note: '', createdAt: 0, updatedAt: 0 } : undefined}
             index={index}
@@ -188,6 +308,7 @@ export const ShapeRenderer: React.FC<ShapeRendererProps> = ({
             isSelected={isSelected}
             isHovered={isHovered}
             isDraft={isDraft}
+            scale={resolutionScale}
           />
         </g>
       );
@@ -195,6 +316,12 @@ export const ShapeRenderer: React.FC<ShapeRendererProps> = ({
 
     case 'pin': {
       const { x, y } = geometry;
+      const safeScale = typeof resolutionScale === 'number' && Number.isFinite(resolutionScale) && resolutionScale > 0 ? resolutionScale : 1.0;
+      const headRadius = Math.round(14 * safeScale);
+      const pointerHeight = Math.round(20 * safeScale);
+      const headCenterY = y - pointerHeight;
+      const fontSize = Math.round(12 * safeScale);
+      const ringRadius = headRadius + Math.round(3 * safeScale);
 
       return (
         <g data-testid="shape-pin" data-annotation-id={annotation.id} {...groupProps}>
@@ -203,7 +330,7 @@ export const ShapeRenderer: React.FC<ShapeRendererProps> = ({
             data-annotation-id={annotation.id}
             className={isDraft ? 'pointer-events-none select-none' : 'cursor-pointer transition-transform duration-150 ease-out'}
             style={{
-              transformOrigin: `${x}px ${y - 20}px`,
+              transformOrigin: `${x}px ${headCenterY}px`,
               transform: isHovered ? 'scale(1.15)' : 'scale(1)',
             }}
             onClick={groupProps.onClick}
@@ -214,30 +341,30 @@ export const ShapeRenderer: React.FC<ShapeRendererProps> = ({
           >
             {(isHovered || isSelected) && (
               <path
-                d={`M ${x} ${y} C ${x - 6} ${y - 8} ${x - 17} ${y - 14} ${x - 17} ${y - 20} A 17 17 0 1 1 ${x + 17} ${y - 20} C ${x + 17} ${y - 14} ${x + 6} ${y - 8} ${x} ${y} Z`}
+                d={`M ${x} ${y} C ${x - Math.round(6 * safeScale)} ${y - Math.round(8 * safeScale)} ${x - ringRadius} ${y - Math.round(14 * safeScale)} ${x - ringRadius} ${headCenterY} A ${ringRadius} ${ringRadius} 0 1 1 ${x + ringRadius} ${headCenterY} C ${x + ringRadius} ${y - Math.round(14 * safeScale)} ${x + Math.round(6 * safeScale)} ${y - Math.round(8 * safeScale)} ${x} ${y} Z`}
                 fill="none"
                 stroke={colorDef.stroke}
-                strokeWidth={4}
+                strokeWidth={Math.max(4, 4 * safeScale)}
                 strokeOpacity={isSelected ? 0.6 : 0.35}
                 className="pointer-events-none"
               />
             )}
             <path
-              d={`M ${x} ${y} C ${x - 4} ${y - 8} ${x - 14} ${y - 14} ${x - 14} ${y - 20} A 14 14 0 1 1 ${x + 14} ${y - 20} C ${x + 14} ${y - 14} ${x + 4} ${y - 8} ${x} ${y} Z`}
+              d={`M ${x} ${y} C ${x - Math.round(4 * safeScale)} ${y - Math.round(8 * safeScale)} ${x - Math.round(14 * safeScale)} ${y - Math.round(14 * safeScale)} ${x - headRadius} ${headCenterY} A ${headRadius} ${headRadius} 0 1 1 ${x + headRadius} ${headCenterY} C ${x + Math.round(14 * safeScale)} ${y - Math.round(14 * safeScale)} ${x + Math.round(4 * safeScale)} ${y - Math.round(8 * safeScale)} ${x} ${y} Z`}
               fill={colorDef.badgeBg}
               stroke="#FFFFFF"
-              strokeWidth={1.5}
+              strokeWidth={Math.max(1.5, 1.5 * safeScale)}
               strokeDasharray={isDraft ? '4 3' : undefined}
               filter="url(#badge-drop-shadow)"
             />
             <text
               data-testid={`badge-text-${index}`}
               x={x}
-              y={y - 20}
+              y={headCenterY}
               textAnchor="middle"
               dominantBaseline="central"
               fill={colorDef.badgeText}
-              fontSize={12}
+              fontSize={fontSize}
               fontWeight="700"
               fontFamily="ui-sans-serif, system-ui, -apple-system, sans-serif"
               className="select-none pointer-events-none"
