@@ -214,7 +214,7 @@ describe('Markdown Serializer Unit Tests', () => {
 
     it('generates timestamped fallback name when base image is null or empty', () => {
       const fallbackPng = generateExportFilename(null, 'png');
-      expect(fallbackPng).toMatch(/^anotato-export-\d+\.png$/);
+      expect(fallbackPng).toMatch(/^annot8-export-\d+\.png$/);
     });
 
     it('formatShapeTypeName capitalizes types safely', () => {

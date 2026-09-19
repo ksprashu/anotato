@@ -1,4 +1,4 @@
-# TEST_READY: Anotato 4-Tier E2E Master Test Suite
+# TEST_READY: Annot8 4-Tier E2E Master Test Suite
 
 **Status**: READY & VERIFIED  
 **Date**: 2026-08-31  
@@ -10,7 +10,7 @@
 
 ## 1. Executive Summary
 
-The comprehensive 4-Tier opaque-box test infrastructure and master test suites for **Anotato** have been fully designed, implemented, and verified. The test suite validates all 23 features from `PROJECT.md` and `ORIGINAL_REQUEST.md`, including edge/boundary conditions, pairwise cross-feature combinations, and real-world developer workflows.
+The comprehensive 4-Tier opaque-box test infrastructure and master test suites for **Annot8** have been fully designed, implemented, and verified. The test suite validates all 23 features from `PROJECT.md` and `ORIGINAL_REQUEST.md`, including edge/boundary conditions, pairwise cross-feature combinations, and real-world developer workflows.
 
 ```
 =============================================================

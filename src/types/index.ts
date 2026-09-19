@@ -1,5 +1,5 @@
 /**
- * Anotato Core Data Models & Contracts
+ * Annot8 Core Data Models & Contracts
  * Strict type definitions for geometries, styling, annotations, base images, viewport, and actions.
  */
 

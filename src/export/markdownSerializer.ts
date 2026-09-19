@@ -1,5 +1,5 @@
 /**
- * Anotato Markdown Serializer
+ * Annot8 Markdown Serializer
  * Pure functional serializer transforming ordered annotations into clean, structured Markdown.
  * Supports Numbered Lists, GFM Tables, Task Checklists, and Full Summary Reports.
  */
@@ -227,7 +227,7 @@ export function serializeAnnotationsToMarkdown(
  */
 export function sanitizeFileName(
   fileName: string,
-  defaultBase = 'anotato-export',
+  defaultBase = 'annot8-export',
   extension = 'png'
 ): string {
   if (!fileName || typeof fileName !== 'string' || fileName.trim().length === 0) {
@@ -270,7 +270,7 @@ export function generateExportFilename(
 ): string {
   const timestamp = Date.now();
   if (!baseImage || !baseImage.fileName || !baseImage.fileName.trim()) {
-    return `anotato-export-${timestamp}.${extension}`;
+    return `annot8-export-${timestamp}.${extension}`;
   }
 
   // Strip existing extension

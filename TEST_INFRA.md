@@ -1,8 +1,8 @@
-# Anotato: 4-Tier Opaque-Box Test Infrastructure
+# Annot8: 4-Tier Opaque-Box Test Infrastructure
 
 ## 1. Overview & Architecture
 
-The Anotato test infrastructure is an opaque-box, contract-driven verification engine designed to validate 100% of user requirements, state invariants, spatial transformations, and export fidelity without coupling tests to transient internal implementations.
+The Annot8 test infrastructure is an opaque-box, contract-driven verification engine designed to validate 100% of user requirements, state invariants, spatial transformations, and export fidelity without coupling tests to transient internal implementations.
 
 The test framework operates across four distinct, complementary tiers:
 
@@ -26,7 +26,7 @@ The test framework operates across four distinct, complementary tiers:
 
 ## 2. Test Execution Harness (`tests/e2e/test-runner.ts`)
 
-Anotato provides a standalone, zero-dependency test runner in `tests/e2e/test-runner.ts` that runs in any Node.js environment (v20+) or within Vitest/Jest test environments.
+Annot8 provides a standalone, zero-dependency test runner in `tests/e2e/test-runner.ts` that runs in any Node.js environment (v20+) or within Vitest/Jest test environments.
 
 ### 2.1 Key Capabilities:
 - **Zero External Dependencies**: Built-in assertion engine (`expect`, `toBe`, `toEqual`, `toMatchObject`, `toThrow`, `toBeCloseTo`, etc.).

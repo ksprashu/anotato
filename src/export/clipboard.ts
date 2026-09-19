@@ -1,5 +1,5 @@
 /**
- * Anotato Clipboard & Export Service
+ * Annot8 Clipboard & Export Service
  * Async Clipboard API integration with permission handling, legacy execCommand fallback,
  * automatic file download fallback, and secure Object URL lifecycle management.
  */
@@ -167,7 +167,7 @@ export async function writeImageToClipboard(
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
       if (options?.autoDownloadFallback !== false) {
-        const fallbackName = options?.fallbackFileName || `anotato-screenshot-${Date.now()}.png`;
+        const fallbackName = options?.fallbackFileName || `annot8-screenshot-${Date.now()}.png`;
         downloadBlob(blob, fallbackName);
         return {
           success: true,
@@ -182,7 +182,7 @@ export async function writeImageToClipboard(
 
   // Browser lacks Async Clipboard support
   if (options?.autoDownloadFallback !== false) {
-    const fallbackName = options?.fallbackFileName || `anotato-screenshot-${Date.now()}.png`;
+    const fallbackName = options?.fallbackFileName || `annot8-screenshot-${Date.now()}.png`;
     downloadBlob(blob, fallbackName);
     return {
       success: true,
@@ -262,7 +262,7 @@ export async function writeTextToClipboard(
 
   // Tier 3: Automatic Download Fallback
   if (options?.autoDownloadFallback !== false) {
-    const fallbackName = options?.fallbackFileName || `anotato-notes-${Date.now()}.md`;
+    const fallbackName = options?.fallbackFileName || `annot8-notes-${Date.now()}.md`;
     downloadTextFile(text, fallbackName);
     return {
       success: true,
@@ -320,7 +320,7 @@ export async function writeCombinedToClipboard(
       } catch (err) {
         const error = err instanceof Error ? err : new Error(String(err));
         if (options?.autoDownloadFallback !== false) {
-          const baseName = options?.fallbackFileNameBase || `anotato-${Date.now()}`;
+          const baseName = options?.fallbackFileNameBase || `annot8-${Date.now()}`;
           downloadBlob(blob, `${baseName}-annotated.png`);
           downloadTextFile(markdown, `${baseName}-notes.md`);
           return {
@@ -336,7 +336,7 @@ export async function writeCombinedToClipboard(
   }
 
   if (options?.autoDownloadFallback !== false) {
-    const baseName = options?.fallbackFileNameBase || `anotato-${Date.now()}`;
+    const baseName = options?.fallbackFileNameBase || `annot8-${Date.now()}`;
     downloadBlob(blob, `${baseName}-annotated.png`);
     downloadTextFile(markdown, `${baseName}-notes.md`);
     return {

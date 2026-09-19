@@ -98,16 +98,16 @@ export const AppContent: React.FC = () => {
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <div
             data-testid="app-brand-logo"
-            className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 flex items-center justify-center font-bold text-slate-950 shadow-md shadow-amber-500/20 text-base select-none transition-transform hover:scale-105"
+            className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 flex items-center justify-center font-black text-slate-950 shadow-md shadow-amber-500/20 text-base select-none transition-transform hover:scale-105 tracking-tighter"
           >
-            🥔
+            8
           </div>
           <div className="flex items-baseline gap-1.5 sm:gap-2">
             <span
               data-testid="app-brand-title"
               className="font-bold text-base sm:text-lg tracking-tight text-slate-900 dark:text-white"
             >
-              Anotato
+              Annot8
             </span>
             <span
               data-testid="app-brand-badge"

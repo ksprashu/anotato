@@ -82,7 +82,7 @@ describe('Integration: Theming, Accessibility, Polish & Shortcuts Modal', () => 
     });
 
     it('T1.2: Restores stored theme from localStorage on initial mount', () => {
-      localStorageStore['anotato_theme'] = 'light';
+      localStorageStore['annot8_theme'] = 'light';
       render(<App />);
       expect(document.documentElement.classList.contains('dark')).toBe(false);
       expect(document.documentElement.classList.contains('light')).toBe(true);
@@ -104,12 +104,12 @@ describe('Integration: Theming, Accessibility, Polish & Shortcuts Modal', () => 
       // Toggle -> Light
       fireEvent.click(themeToggle);
       expect(document.documentElement.classList.contains('dark')).toBe(false);
-      expect(window.localStorage.setItem).toHaveBeenCalledWith('anotato_theme', 'light');
+      expect(window.localStorage.setItem).toHaveBeenCalledWith('annot8_theme', 'light');
 
       // Toggle -> Dark
       fireEvent.click(themeToggle);
       expect(document.documentElement.classList.contains('dark')).toBe(true);
-      expect(window.localStorage.setItem).toHaveBeenCalledWith('anotato_theme', 'dark');
+      expect(window.localStorage.setItem).toHaveBeenCalledWith('annot8_theme', 'dark');
     });
   });
 

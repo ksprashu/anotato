@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="docs/images/banner.png" alt="Anotato - Screenshot Annotation & Note-Taking for Developers" width="100%" style="border-radius: 12px; margin-bottom: 20px;" />
+<img src="docs/images/banner.png" alt="Annot8 - Screenshot Annotation & Note-Taking for Developers" width="100%" style="border-radius: 12px; margin-bottom: 20px;" />
 
-# Anotato 📝⚡
+# Annot8 📝⚡
 
 **Screenshot Annotation & Split-View Markdown Note-Taking for Developers & Technical Writers**
 
@@ -21,7 +21,7 @@
 
 > [!IMPORTANT]
 > ### ⚠️ Mandatory Open-Source & Non-Affiliation Disclaimer
-> **Anotato is an independent, personal open-source project created and maintained by Prashanth Subrahmanyam. It is not an official Google project or product, and is not supported, certified, or endorsed by Google LLC in any capacity. This software is provided strictly on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied, including, without limitation, any warranties or conditions of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A PARTICULAR PURPOSE. Use at your own risk.**
+> **Annot8 is an independent, personal open-source project created and maintained by Prashanth Subrahmanyam. It is not an official Google project or product, and is not supported, certified, or endorsed by Google LLC in any capacity. This software is provided strictly on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied, including, without limitation, any warranties or conditions of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A PARTICULAR PURPOSE. Use at your own risk.**
 
 ---
 
@@ -43,7 +43,7 @@
 
 Developers, technical writers, support engineers, and product teams constantly capture screenshots to document bugs, write architectural runbooks, and explain UI workflows. Existing tools are either bloated desktop apps, cloud platforms requiring accounts and uploads, or basic screenshot utilities that lack structured note synchronization.
 
-**Anotato** is built to solve this with a single high-efficiency web tool:
+**Annot8** is built to solve this with a single high-efficiency web tool:
 1. **Paste screenshot** (`Cmd+V` / `Ctrl+V`).
 2. **Draw vector callouts** (Boxes, Circles, Arrows, numbered Pins) that automatically receive sequential $1..N$ badges.
 3. **Write structured markdown notes** in the synchronized split-view sidebar.
@@ -92,11 +92,11 @@ Developers, technical writers, support engineers, and product teams constantly c
 
 ## 🏛️ System Architecture
 
-Anotato is structured around a **5-Layer Hybrid Architecture** that cleanly separates interactive viewport rendering from high-resolution export rasterization:
+Annot8 is structured around a **5-Layer Hybrid Architecture** that cleanly separates interactive viewport rendering from high-resolution export rasterization:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                            Anotato Application                              │
+│                            Annot8 Application                               │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │  Layer 1: Interactive Viewport Layer                                        │
 │  ┌───────────────────────────────┐   ┌───────────────────────────────────┐  │
@@ -194,7 +194,7 @@ Anotato is structured around a **5-Layer Hybrid Architecture** that cleanly sepa
    ```bash
    npm run dev
    ```
-   Open `http://localhost:5173` to explore Anotato with instant Vite Hot Module Replacement.
+   Open `http://localhost:5173` to explore Annot8 with instant Vite Hot Module Replacement.
 
 4. **Production build**:
    ```bash
@@ -211,7 +211,7 @@ Anotato is structured around a **5-Layer Hybrid Architecture** that cleanly sepa
 
 ## 🧪 Testing & Quality Assurance
 
-Anotato features a comprehensive 51-suite automated test matrix covering unit math, React components, integration pipelines, and 4-tier opaque-box E2E scenarios.
+Annot8 features a comprehensive 51-suite automated test matrix covering unit math, React components, integration pipelines, and 4-tier opaque-box E2E scenarios.
 
 ```bash
 # Run the complete test suite (51 suites, 758 tests)
@@ -240,12 +240,12 @@ A high-performance, hardened multi-stage Docker container serves the production 
 
 1. **Build the Docker container image**:
    ```bash
-   docker build -t anotato:latest .
+   docker build -t annot8:latest .
    ```
 
 2. **Run locally on port 8080**:
    ```bash
-   docker run -d -p 8080:8080 --name anotato-app anotato:latest
+   docker run -d -p 8080:8080 --name annot8-app annot8:latest
    ```
    Access `http://localhost:8080` in your web browser.
 
@@ -291,7 +291,7 @@ Please note that this is a personal open-source project maintained on a best-eff
 
 ## 📄 License
 
-Anotato is open-source software licensed under the [Apache License, Version 2.0](LICENSE).
+Annot8 is open-source software licensed under the [Apache License, Version 2.0](LICENSE).
 
 ```
 Copyright 2026 Prashanth Subrahmanyam

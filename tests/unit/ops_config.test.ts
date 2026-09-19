@@ -16,16 +16,16 @@ describe('Milestones M-Rel-3 & M-Rel-4: Operations, Containerization & Deploymen
       const content = fs.readFileSync(nginxPath, 'utf-8');
 
       // Rate limit zone: 10MB memory, 30 req/sec
-      expect(content).toMatch(/limit_req_zone\s+\$binary_remote_addr\s+zone=anotato_limit:10m\s+rate=30r\/s;/);
+      expect(content).toMatch(/limit_req_zone\s+\$binary_remote_addr\s+zone=annot8_limit:10m\s+rate=30r\/s;/);
       // Connection limit zone: 10MB memory
-      expect(content).toMatch(/limit_conn_zone\s+\$binary_remote_addr\s+zone=anotato_conn:10m;/);
+      expect(content).toMatch(/limit_conn_zone\s+\$binary_remote_addr\s+zone=annot8_conn:10m;/);
 
       // Server-level rate limiting with burst buffer and HTTP 429 status
-      expect(content).toMatch(/limit_req\s+zone=anotato_limit\s+burst=50\s+nodelay;/);
+      expect(content).toMatch(/limit_req\s+zone=annot8_limit\s+burst=50\s+nodelay;/);
       expect(content).toMatch(/limit_req_status\s+429;/);
 
       // Server-level connection limit
-      expect(content).toMatch(/limit_conn\s+anotato_conn\s+30;/);
+      expect(content).toMatch(/limit_conn\s+annot8_conn\s+30;/);
     });
 
     it('configures server binding on port 8080 and hides server tokens', () => {

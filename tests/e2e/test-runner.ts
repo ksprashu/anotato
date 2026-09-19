@@ -1,7 +1,7 @@
 /**
- * Anotato E2E Test Runner Harness
+ * Annot8 E2E Test Runner Harness
  * 
- * Standalone, zero-dependency, headless-compatible test engine & mock harness for Anotato.
+ * Standalone, zero-dependency, headless-compatible test engine & mock harness for Annot8.
  * Supports running via `npx tsx tests/e2e/test-runner.ts` or within standard Vitest/Jest environments.
  */
 
@@ -534,7 +534,7 @@ export async function runCli(): Promise<boolean> {
   setupMockEnvironment();
 
   console.log('\n=============================================================');
-  console.log('  ANOTATO 4-TIER E2E TEST SUITE RUNNER');
+  console.log('  ANNOT8 4-TIER E2E TEST SUITE RUNNER');
   console.log('=============================================================\n');
 
   const startTime = Date.now();

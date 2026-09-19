@@ -35,7 +35,7 @@ export interface ExportActionsProps {
 export function sanitizeBaseFilename(fileName?: string): string {
   if (!fileName) {
     const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
-    return `anotato-${timestamp}`;
+    return `annot8-${timestamp}`;
   }
   return fileName.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_-]/g, '_');
 }

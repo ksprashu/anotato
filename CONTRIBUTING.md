@@ -1,12 +1,12 @@
-# Contributing to Anotato
+# Contributing to Annot8
 
-Thank you for your interest in contributing to Anotato! We welcome community contributions, bug reports, and enhancements to help make developer screenshot annotations and split-view note-taking faster, cleaner, and more productive.
+Thank you for your interest in contributing to Annot8! We welcome community contributions, bug reports, and enhancements to help make developer screenshot annotations and split-view note-taking faster, cleaner, and more productive.
 
 ---
 
 > [!IMPORTANT]
 > ### ⚠️ Project Scope & Support Disclaimer
-> **Anotato is an independent, personal open-source project created and maintained by Prashanth Subrahmanyam. It is not an official Google project or product, and is not supported, certified, or endorsed by Google LLC in any capacity.**
+> **Annot8 is an independent, personal open-source project created and maintained by Prashanth Subrahmanyam. It is not an official Google project or product, and is not supported, certified, or endorsed by Google LLC in any capacity.**
 >
 > This project is maintained strictly on a personal, best-effort basis during spare time. **There is no Service Level Agreement (SLA), guaranteed response time, or official technical support.**
 >
@@ -71,7 +71,7 @@ We are committed to providing a friendly, safe, and welcoming environment for ev
 
 ## Architecture & Design Principles
 
-Anotato is designed as a zero-backend, 100% client-side web application structured around a **5-Layer Hybrid Model**:
+Annot8 is designed as a zero-backend, 100% client-side web application structured around a **5-Layer Hybrid Model**:
 
 1. **Interactive Viewport Layer**:
    - Native unscaled base image container with hardware-accelerated CSS transforms for pan and zoom.
@@ -118,7 +118,7 @@ Anotato is designed as a zero-backend, 100% client-side web application structur
 
 ## Testing & Quality Assurance
 
-Anotato enforces strict testing standards. Every pull request must pass all test suites.
+Annot8 enforces strict testing standards. Every pull request must pass all test suites.
 
 ### Running Tests
 
@@ -190,4 +190,4 @@ Please keep in mind that this is a personal open-source project; issues and PRs 
 
 ## License Notice
 
-By contributing to Anotato, you agree that your contributions will be licensed under the [Apache License, Version 2.0](LICENSE).
+By contributing to Annot8, you agree that your contributions will be licensed under the [Apache License, Version 2.0](LICENSE).

@@ -1,5 +1,5 @@
 /**
- * Anotato Shared Test Fixtures, Mock Generators & Reference Oracle Functions
+ * Annot8 Shared Test Fixtures, Mock Generators & Reference Oracle Functions
  * Strictly adheres to PROJECT.md and ORIGINAL_REQUEST.md interface contracts.
  */
 

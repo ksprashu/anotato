@@ -951,8 +951,8 @@ describe('Tier 1: Feature Coverage (Features 1 through 23)', () => {
     });
 
     it('F20.4: Fallback export filename is generated when base image has empty name', () => {
-      const fallbackName = `anotato-export-${Date.now()}.png`;
-      expect(fallbackName).toMatch(/^anotato-export-\d+\.png$/);
+      const fallbackName = `annot8-export-${Date.now()}.png`;
+      expect(fallbackName).toMatch(/^annot8-export-\d+\.png$/);
     });
 
     it('F20.5: Exporting markdown report with 0 annotations generates standard empty file', () => {

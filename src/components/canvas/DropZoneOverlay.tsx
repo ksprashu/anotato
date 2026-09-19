@@ -176,8 +176,8 @@ export const DropZoneOverlay: React.FC<DropZoneOverlayProps> = ({
 
       <div className="flex flex-col items-center text-center max-w-lg w-full bg-slate-900/90 border border-slate-800 rounded-2xl p-8 sm:p-10 shadow-2xl backdrop-blur-xl transition-all">
         {/* Brand Icon Header */}
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center font-bold text-2xl text-slate-950 mb-6 shadow-lg shadow-amber-500/20">
-          A
+        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center font-black text-3xl text-slate-950 mb-6 shadow-lg shadow-amber-500/20 tracking-tighter">
+          8
         </div>
 
         {/* Primary Prompt */}
@@ -185,7 +185,7 @@ export const DropZoneOverlay: React.FC<DropZoneOverlayProps> = ({
           Paste screenshot or drop image
         </h1>
         <p className="text-sm text-slate-400 mb-6 max-w-sm">
-          Anotato gives developers instant visual annotation, auto-numbering, and synchronized markdown notes.
+          Annot8 gives developers instant visual annotation, auto-numbering, and synchronized markdown notes.
         </p>
 
         {/* Prominent Keyboard Paste Badge */}

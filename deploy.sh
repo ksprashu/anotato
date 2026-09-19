@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # ==============================================================================
-# Anotato - Google Cloud Run Deployment Script
+# Annot8 - Google Cloud Run Deployment Script
 # Parameterized for custom GCP Projects & Regions with safe cost guardrails
 # ==============================================================================
 
@@ -42,7 +42,7 @@ while [[ $# -gt 0 ]]; do
             echo "Environment variables:"
             echo "  GCP_PROJECT_ID / PROJECT_ID   Google Cloud Project ID"
             echo "  GCP_REGION / REGION           Google Cloud Region (default: us-central1)"
-            echo "  SERVICE_NAME                  Cloud Run Service Name (default: anotato)"
+            echo "  SERVICE_NAME                  Cloud Run Service Name (default: annot8)"
             echo "  CONCURRENCY                   Requests per container instance (default: 80)"
             echo "  MIN_INSTANCES                 Minimum container instances (default: 0)"
             echo "  MAX_INSTANCES                 Maximum container instances (default: 5)"
@@ -82,7 +82,7 @@ fi
 
 PROJECT_ID="${RESOLVED_PROJECT}"
 REGION="${ARG_REGION:-${GCP_REGION:-${REGION:-us-central1}}}"
-SERVICE_NAME="${SERVICE_NAME:-anotato}"
+SERVICE_NAME="${SERVICE_NAME:-annot8}"
 CONCURRENCY="${CONCURRENCY:-80}"
 MIN_INSTANCES="${MIN_INSTANCES:-0}"
 MAX_INSTANCES="${MAX_INSTANCES:-5}"

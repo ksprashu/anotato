@@ -1,7 +1,7 @@
-# Project: Anotato
+# Project: Annot8
 
 ## Architecture
-Anotato is built with a Layered Hybrid Architecture for ultra-fast 60 FPS viewport interaction and pixel-perfect 1:1 composite export:
+Annot8 is built with a Layered Hybrid Architecture for ultra-fast 60 FPS viewport interaction and pixel-perfect 1:1 composite export:
 1. **Interactive Viewport Layer**:
    - **Base Image Canvas / Layer**: Renders the screenshot at native aspect ratio with hardware-accelerated CSS transforms for pan and zoom.
    - **Interactive SVG Overlay**: Renders all vector shapes (boxes, ellipses, arrows, callout pins) and numbered badges with sub-pixel crispness, hover halos, selection boxes, and 8-point resize handles in image coordinate space.
@@ -22,7 +22,7 @@ Anotato is built with a Layered Hybrid Architecture for ultra-fast 60 FPS viewpo
 
 ## Code Layout
 ```
-anotato/
+annot8/
 ├── index.html
 ├── package.json
 ├── tsconfig.json
