@@ -38,8 +38,8 @@ jobs:
       - name: Run ESLint
         run: npm run lint
 
-      - name: Run Vitest test suites
-        run: npm test
-
       - name: Run Production Build
         run: npm run build
+
+      - name: Run Vitest test suites
+        run: npm test
