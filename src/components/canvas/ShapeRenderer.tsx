@@ -4,6 +4,8 @@ import { PRESET_COLORS } from '../../constants/colors';
 import { calculateArrowhead } from '../../math/geometry';
 import { getBadgePositionForShape } from '../../math/badges';
 import { BadgeRenderer } from './BadgeRenderer';
+import { AnnotationDeleteButton } from './AnnotationDeleteButton';
+import { useApp } from '../../state/AppContext';
 
 export interface ShapeRendererProps {
   annotation: {
@@ -20,6 +22,7 @@ export interface ShapeRendererProps {
   onPointerDown?: (e: React.PointerEvent) => void;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
+  onDelete?: (id: string) => void;
 }
 
 export function hexToRgba(hex: string, opacity: number): string {
@@ -43,10 +46,29 @@ export const ShapeRenderer: React.FC<ShapeRendererProps> = ({
   onPointerDown,
   onMouseEnter,
   onMouseLeave,
+  onDelete,
 }) => {
   const { geometry, style, index = 1 } = annotation;
   const colorDef = PRESET_COLORS[style.color] || PRESET_COLORS.amber;
   const fillColor = hexToRgba(colorDef.hex, style.fillOpacity);
+
+  let appDispatch: any = null;
+  try {
+    const app = useApp();
+    appDispatch = app.dispatch;
+  } catch {
+    // Isolated unit tests
+  }
+
+  const handleDelete = (id: string) => {
+    if (onDelete) {
+      onDelete(id);
+    } else if (appDispatch) {
+      appDispatch({ type: 'DELETE_ANNOTATION', payload: { id } });
+    }
+  };
+
+  const showDeleteBtn = (isHovered || isSelected) && !isDraft && Boolean(annotation.id);
 
   const groupProps = {
     onClick,
@@ -59,7 +81,7 @@ export const ShapeRenderer: React.FC<ShapeRendererProps> = ({
   switch (geometry.type) {
     case 'highlight': {
       const { x, y, width, height, borderRadius = 4 } = geometry;
-      const badgePos = { x, y };
+      const deletePos = { x: x + width, y };
 
       return (
         <g data-testid="shape-highlight" {...groupProps}>
@@ -90,23 +112,21 @@ export const ShapeRenderer: React.FC<ShapeRendererProps> = ({
             strokeWidth={style.strokeWidth}
             strokeDasharray={isDraft ? '6 4' : (isHovered || isSelected ? '4 4' : undefined)}
           />
-          <BadgeRenderer
-            annotation={annotation.id ? { id: annotation.id, index, geometry, style, note: '', createdAt: 0, updatedAt: 0 } : undefined}
-            index={index}
-            position={badgePos}
-            color={style.color}
-            isSelected={isSelected}
-            isHovered={isHovered}
-            isDraft={isDraft}
-            scale={resolutionScale}
-          />
+          {showDeleteBtn && (
+            <AnnotationDeleteButton
+              position={deletePos}
+              scale={resolutionScale}
+              annotationId={annotation.id!}
+              onDelete={handleDelete}
+            />
+          )}
         </g>
       );
     }
 
     case 'blur': {
       const { x, y, width, height, borderRadius = 2 } = geometry;
-      const badgePos = { x, y };
+      const deletePos = { x: x + width, y };
 
       return (
         <g data-testid="shape-blur" {...groupProps}>
@@ -137,16 +157,14 @@ export const ShapeRenderer: React.FC<ShapeRendererProps> = ({
             strokeWidth={style.strokeWidth}
             strokeDasharray={isHovered || isSelected || isDraft ? '4 4' : undefined}
           />
-          <BadgeRenderer
-            annotation={annotation.id ? { id: annotation.id, index, geometry, style, note: '', createdAt: 0, updatedAt: 0 } : undefined}
-            index={index}
-            position={badgePos}
-            color={style.color}
-            isSelected={isSelected}
-            isHovered={isHovered}
-            isDraft={isDraft}
-            scale={resolutionScale}
-          />
+          {showDeleteBtn && (
+            <AnnotationDeleteButton
+              position={deletePos}
+              scale={resolutionScale}
+              annotationId={annotation.id!}
+              onDelete={handleDelete}
+            />
+          )}
         </g>
       );
     }
@@ -154,6 +172,7 @@ export const ShapeRenderer: React.FC<ShapeRendererProps> = ({
     case 'box': {
       const { x, y, width, height, borderRadius = 4 } = geometry;
       const badgePos = { x, y };
+      const deletePos = { x: x + width, y };
 
       return (
         <g data-testid="shape-box" {...groupProps}>
@@ -194,6 +213,14 @@ export const ShapeRenderer: React.FC<ShapeRendererProps> = ({
             isDraft={isDraft}
             scale={resolutionScale}
           />
+          {showDeleteBtn && (
+            <AnnotationDeleteButton
+              position={deletePos}
+              scale={resolutionScale}
+              annotationId={annotation.id!}
+              onDelete={handleDelete}
+            />
+          )}
         </g>
       );
     }
@@ -201,6 +228,10 @@ export const ShapeRenderer: React.FC<ShapeRendererProps> = ({
     case 'ellipse': {
       const { cx, cy, rx, ry } = geometry;
       const badgePos = getBadgePositionForShape(geometry);
+      const deletePos = {
+        x: cx + rx * Math.SQRT1_2,
+        y: cy - ry * Math.SQRT1_2,
+      };
 
       return (
         <g data-testid="shape-ellipse" {...groupProps}>
@@ -237,6 +268,14 @@ export const ShapeRenderer: React.FC<ShapeRendererProps> = ({
             isDraft={isDraft}
             scale={resolutionScale}
           />
+          {showDeleteBtn && (
+            <AnnotationDeleteButton
+              position={deletePos}
+              scale={resolutionScale}
+              annotationId={annotation.id!}
+              onDelete={handleDelete}
+            />
+          )}
         </g>
       );
     }
@@ -245,6 +284,10 @@ export const ShapeRenderer: React.FC<ShapeRendererProps> = ({
       const { startX, startY, endX, endY } = geometry;
       const arrowhead = calculateArrowhead({ x: startX, y: startY }, { x: endX, y: endY }, style.strokeWidth);
       const badgePos = { x: startX, y: startY };
+      const deletePos = {
+        x: (startX + endX) / 2,
+        y: (startY + endY) / 2,
+      };
 
       return (
         <g data-testid="shape-arrow" {...groupProps}>
@@ -314,6 +357,14 @@ export const ShapeRenderer: React.FC<ShapeRendererProps> = ({
             isDraft={isDraft}
             scale={resolutionScale}
           />
+          {showDeleteBtn && (
+            <AnnotationDeleteButton
+              position={deletePos}
+              scale={resolutionScale}
+              annotationId={annotation.id!}
+              onDelete={handleDelete}
+            />
+          )}
         </g>
       );
     }
@@ -326,6 +377,10 @@ export const ShapeRenderer: React.FC<ShapeRendererProps> = ({
       const headCenterY = y - pointerHeight;
       const fontSize = Math.round(12 * safeScale);
       const ringRadius = headRadius + Math.round(3 * safeScale);
+      const deletePos = {
+        x: x + headRadius + Math.round(4 * safeScale),
+        y: headCenterY - Math.round(headRadius * 0.7),
+      };
 
       return (
         <g data-testid="shape-pin" data-annotation-id={annotation.id} {...groupProps}>
@@ -376,6 +431,14 @@ export const ShapeRenderer: React.FC<ShapeRendererProps> = ({
               {index}
             </text>
           </g>
+          {showDeleteBtn && (
+            <AnnotationDeleteButton
+              position={deletePos}
+              scale={resolutionScale}
+              annotationId={annotation.id!}
+              onDelete={handleDelete}
+            />
+          )}
         </g>
       );
     }

@@ -955,8 +955,7 @@ describe('M3 Challenger Suite: Destructive 2D Canvas Export Blur Baking', () => 
         const state = instrumented.getCurrentState();
         expect(state.filter).toBe('none');
 
-        // All 3 badges rendered cleanly
-        expect(instrumented.ctx.fillText).toHaveBeenCalledWith('1', 100, 100);
+        // Badges rendered for arrow (2) and pin (3); blur (1) is unnumbered and omits badge
         expect(instrumented.ctx.fillText).toHaveBeenCalledWith('2', 400, 300);
         expect(instrumented.ctx.fillText).toHaveBeenCalledWith('3', 850, 423);
 
@@ -1343,8 +1342,8 @@ describe('M3 Challenger Suite: Destructive 2D Canvas Export Blur Baking', () => 
       // 4. Clip invoked exactly 55 times for blur annotations
       expect(mainCtx.clip).toHaveBeenCalledTimes(blurCount);
 
-      // 5. Total text badges rendered matches total annotations (105)
-      expect(mainCtx.fillText).toHaveBeenCalledTimes(totalCount);
+      // 5. Total text badges rendered matches arrow callouts (30)
+      expect(mainCtx.fillText).toHaveBeenCalledTimes(arrowCount);
     });
 
     it('C4.2: Zero coordinate violations across 100+ composite annotations (zero NaN, zero Infinity)', async () => {
@@ -1516,10 +1515,9 @@ describe('M3 Challenger Suite: Destructive 2D Canvas Export Blur Baking', () => 
       // Call 2: Additive highlight backdrop
       expect(mainCtx.drawImage).toHaveBeenCalledTimes(3);
 
-      // Blur border stroke and badge rendered on top of baked pixels
-      expect(mainCtx.fillText).toHaveBeenCalledWith('1', 200, 200);
-      expect(mainCtx.fillText).toHaveBeenCalledWith('2', 150, 150);
+      // Arrow badge rendered on top of composite (blur and highlight are unnumbered)
       expect(mainCtx.fillText).toHaveBeenCalledWith('3', 250, 250);
+      expect(mainCtx.fillText).toHaveBeenCalledTimes(1);
     });
   });
 

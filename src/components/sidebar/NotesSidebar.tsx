@@ -39,7 +39,11 @@ export const NotesSidebar: React.FC<NotesSidebarProps> = ({
     // Isolated tests
   }
 
-  const annotations = appState ? appState.annotations : [];
+  const allAnnotations = appState ? appState.annotations : [];
+  // Only annotatable callouts (box, ellipse, arrow, pin) appear as notes in the sidebar
+  const annotations = allAnnotations.filter(
+    (ann) => ann.geometry.type !== 'highlight' && ann.geometry.type !== 'blur'
+  );
   const selectedAnnotationId = appState ? appState.selectedAnnotationId : null;
   const hoveredAnnotationId = appState ? appState.hoveredAnnotationId : null;
   const stateIsOpen = appState ? appState.isSidebarOpen : true;

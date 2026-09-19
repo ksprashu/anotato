@@ -221,10 +221,15 @@ describe('Milestone 5 Challenger 2: Tier 5 White-Box Boundary & Concurrency Stre
 
         history = pushHistory(history, snapshot);
 
-        // Verification 1: Index monotonicity invariant
+        // Verification 1: Index monotonicity invariant (1..N for callouts, 0 for visual effects)
         expect(history.present.annotations).toHaveLength(i);
-        history.present.annotations.forEach((ann, idx) => {
-          expect(ann.index).toBe(idx + 1);
+        let expectedCalloutIndex = 1;
+        history.present.annotations.forEach((ann) => {
+          if (ann.geometry.type === 'highlight' || ann.geometry.type === 'blur') {
+            expect(ann.index).toBe(0);
+          } else {
+            expect(ann.index).toBe(expectedCalloutIndex++);
+          }
         });
 
         // Verification 2: Max history steps bound
@@ -280,10 +285,15 @@ describe('Milestone 5 Challenger 2: Tier 5 White-Box Boundary & Concurrency Stre
         }
 
         // Rigorous Invariant Assertions:
-        // 1. Monotonic sequential indexing 1..N with zero gaps or duplicates
+        // 1. Monotonic sequential indexing 1..N for callouts, 0 for visual effects
         const currentAnnotations = history.present.annotations;
-        currentAnnotations.forEach((ann, idx) => {
-          expect(ann.index).toBe(idx + 1);
+        let expectedCalloutIndex = 1;
+        currentAnnotations.forEach((ann) => {
+          if (ann.geometry.type === 'highlight' || ann.geometry.type === 'blur') {
+            expect(ann.index).toBe(0);
+          } else {
+            expect(ann.index).toBe(expectedCalloutIndex++);
+          }
         });
 
         // 2. History depth boundaries
@@ -743,14 +753,10 @@ describe('Milestone 5 Challenger 2: Tier 5 White-Box Boundary & Concurrency Stre
       expect(screen.getByTestId('blur-slice-blur-straddle-1')).toBeInTheDocument();
       expect(screen.getByTestId('blur-slice-blur-outside-1')).toBeInTheDocument();
 
-      // Verify Shape renderers and Badges
+      // Verify Shape renderers and Badges (highlight and blur are unnumbered visual effects, no badges)
       expect(screen.getByTestId('shape-highlight')).toBeInTheDocument();
       expect(screen.getAllByTestId('shape-blur')).toHaveLength(3);
-      expect(screen.getByTestId('annotation-badge-1')).toBeInTheDocument();
-      expect(screen.getByTestId('annotation-badge-1')).toHaveAttribute('data-annotation-id', 'hl-collision-1');
-      expect(screen.getByTestId('annotation-badge-2')).toBeInTheDocument();
-      expect(screen.getByTestId('annotation-badge-3')).toBeInTheDocument();
-      expect(screen.getByTestId('annotation-badge-4')).toBeInTheDocument();
+      expect(screen.queryByTestId(/annotation-badge-/)).not.toBeInTheDocument();
 
       unmount();
     });
@@ -776,9 +782,8 @@ describe('Milestone 5 Challenger 2: Tier 5 White-Box Boundary & Concurrency Stre
       expect(ctx.drawImage).toHaveBeenCalled();
       // Verify clip was called for destructive blur baking
       expect(ctx.clip).toHaveBeenCalled();
-      // Verify badges were rasterized
-      expect(ctx.fillText).toHaveBeenCalledWith('1', expect.any(Number), expect.any(Number));
-      expect(ctx.fillText).toHaveBeenCalledWith('2', expect.any(Number), expect.any(Number));
+      // Unnumbered highlight and blur do not rasterize badges
+      expect(ctx.fillText).not.toHaveBeenCalled();
 
       // Verify blob export succeeds
       const blob = await exportCompositeBlob(mockBaseImage, [hlAnn, blurNested]);
@@ -874,6 +879,8 @@ describe('Milestone 5 Challenger 2: Tier 5 White-Box Boundary & Concurrency Stre
         collisionAnnotations.push(ann);
       }
 
+      const reindexed = reindexAnnotations(collisionAnnotations);
+
       // 1. Live SvgOverlay rendering with 60 colliding annotations
       const { unmount } = render(
         React.createElement(
@@ -881,7 +888,7 @@ describe('Milestone 5 Challenger 2: Tier 5 White-Box Boundary & Concurrency Stre
           {
             initialState: {
               image: mockBaseImage,
-              annotations: collisionAnnotations,
+              annotations: reindexed,
               activeTool: 'select',
             },
           },
@@ -890,14 +897,14 @@ describe('Milestone 5 Challenger 2: Tier 5 White-Box Boundary & Concurrency Stre
       );
 
       expect(screen.getByTestId('svg-overlay')).toBeInTheDocument();
-      // All 60 badges must be distinctly rendered
-      for (let i = 1; i <= 60; i++) {
+      // All 40 callout badges must be distinctly rendered (4 out of 6 tools in cycle are annotatable)
+      for (let i = 1; i <= 40; i++) {
         expect(screen.getByTestId(`annotation-badge-${i}`)).toBeInTheDocument();
       }
       unmount();
 
       // 2. Offscreen Canvas composite rasterization with 60 colliding annotations
-      const canvas = await renderCompositeCanvas(mockBaseImage, collisionAnnotations);
+      const canvas = await renderCompositeCanvas(mockBaseImage, reindexed);
       expect(canvas.width).toBe(1920);
       expect(canvas.height).toBe(1080);
     });

@@ -263,9 +263,7 @@ export function rasterizeAnnotation(
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
       ctx.stroke();
-
-      // Render Numbered Badge at top-left corner
-      rasterizeBadge(ctx, { x, y }, index, style.color, scale);
+      // No badge rasterized for unnumbered highlight
       break;
     }
 
@@ -278,9 +276,7 @@ export function rasterizeAnnotation(
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
       ctx.stroke();
-
-      // Render Numbered Badge at top-left corner
-      rasterizeBadge(ctx, { x, y }, index, style.color, scale);
+      // No badge rasterized for unnumbered blur
       break;
     }
 
@@ -526,7 +522,7 @@ export async function renderCompositeCanvas(
       offscreenCtx.imageSmoothingEnabled = true;
       offscreenCtx.imageSmoothingQuality = 'high';
 
-      offscreenCtx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+      offscreenCtx.fillStyle = 'rgba(0, 0, 0, 0.68)';
       offscreenCtx.fillRect(0, 0, width, height);
 
       offscreenCtx.globalCompositeOperation = 'destination-out';

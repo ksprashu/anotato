@@ -366,7 +366,7 @@ export interface SpotlightMaskModel {
 export function generateSpotlightMaskModel(highlights: HighlightGeometry[]): SpotlightMaskModel {
   return {
     maskId: 'spotlight-mask',
-    backdropColor: 'rgba(0,0,0,0.45)',
+    backdropColor: 'rgba(0,0,0,0.68)',
     baseRect: { width: '100%', height: '100%', fill: 'white' },
     cutouts: highlights.map((h) => ({
       x: h.x,
@@ -408,12 +408,18 @@ export function generateBlurFilterModel(blurs: BlurGeometry[]): BlurFilterModel 
 // 4. State Management & Invariants Reducer for Annotely Features
 // ============================================================================
 
+export function isAnnotelyAnnotatable(geometry: AnnotelyGeometry): boolean {
+  return geometry.type !== 'highlight' && geometry.type !== 'blur';
+}
+
 export function reindexAnnotelyAnnotations(
   annotations: AnnotelyAnnotation[]
 ): AnnotelyAnnotation[] {
   let changed = false;
-  const reindexed = annotations.map((ann, i) => {
-    const expectedIndex = i + 1;
+  let nextAnnotatableIndex = 1;
+  const reindexed = annotations.map((ann) => {
+    const isAnnotatable = isAnnotelyAnnotatable(ann.geometry);
+    const expectedIndex = isAnnotatable ? nextAnnotatableIndex++ : 0;
     if (ann.index !== expectedIndex) {
       changed = true;
       return { ...ann, index: expectedIndex };
@@ -468,9 +474,13 @@ export function annotelyAppReducer(
     case 'ADD_ANNOTATION': {
       const id = action.payload.id || `ann_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
       const now = Date.now();
+      const isAnnotatable = isAnnotelyAnnotatable(action.payload.geometry);
+      const nextIndex = isAnnotatable
+        ? state.annotations.filter((a) => isAnnotelyAnnotatable(a.geometry)).length + 1
+        : 0;
       const newAnnotation: AnnotelyAnnotation = {
         id,
-        index: state.annotations.length + 1,
+        index: nextIndex,
         geometry: action.payload.geometry,
         style: {
           color: action.payload.style?.color || state.activeColor,
@@ -650,7 +660,7 @@ export function simulateAnnotelyCanvasExport(
   if (highlightAnnotations.length > 0) {
     steps.push({
       stage: 'spotlight_backdrop_fill',
-      details: { color: 'rgba(0,0,0,0.45)', width: image.naturalWidth, height: image.naturalHeight },
+      details: { color: 'rgba(0,0,0,0.68)', width: image.naturalWidth, height: image.naturalHeight },
     });
 
     for (const hl of highlightAnnotations) {
@@ -735,8 +745,9 @@ export function simulateAnnotelyCanvasExport(
     }
   }
 
-  // Stage 5: Scaled numbered badges
+  // Stage 5: Scaled numbered badges (only for annotatable callouts: box, ellipse, arrow, pin)
   for (const ann of annotations) {
+    if (ann.geometry.type === 'highlight' || ann.geometry.type === 'blur') continue;
     const badgePos = getBadgePositionForAnnotelyShape(ann.geometry, resolutionScale);
     const badgeDim = getBadgeDimensionsContract(ann.index, resolutionScale);
     steps.push({

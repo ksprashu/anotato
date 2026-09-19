@@ -495,7 +495,7 @@ describe('appReducer & State Engine', () => {
       expect(state.activeTool).toBe('highlight');
     });
 
-    it('T6.4: ADD_ANNOTATION with HighlightGeometry assigns correct 1..N index and selects it', () => {
+    it('T6.4: ADD_ANNOTATION with HighlightGeometry assigns unnumbered (0) index and selects it', () => {
       const highlightGeom: HighlightGeometry = {
         type: 'highlight',
         x: 100,
@@ -512,7 +512,7 @@ describe('appReducer & State Engine', () => {
       });
 
       expect(state.annotations).toHaveLength(1);
-      expect(state.annotations[0].index).toBe(1);
+      expect(state.annotations[0].index).toBe(0);
       expect(state.annotations[0].geometry).toEqual(highlightGeom);
       expect(state.annotations[0].note).toBe('Spotlight main headline');
       expect(state.selectedAnnotationId).toBe(state.annotations[0].id);
@@ -546,7 +546,7 @@ describe('appReducer & State Engine', () => {
       expect(state.annotations[0].geometry).toEqual(movedGeom);
     });
 
-    it('T6.6: Deleting a highlight annotation re-indexes remaining annotations sequentially (1..N)', () => {
+    it('T6.6: Deleting an unnumbered highlight preserves sequential (1..N) indexing of callouts', () => {
       let state = initialState;
       state = appReducer(state, {
         type: 'ADD_ANNOTATION',
@@ -564,7 +564,7 @@ describe('appReducer & State Engine', () => {
         payload: { id: 'a3', geometry: samplePin },
       });
 
-      expect(state.annotations.map((a) => a.index)).toEqual([1, 2, 3]);
+      expect(state.annotations.map((a) => a.index)).toEqual([1, 0, 2]);
 
       state = appReducer(state, {
         type: 'DELETE_ANNOTATION',
@@ -666,7 +666,7 @@ describe('appReducer & State Engine', () => {
       expect(state.activeTool).toBe('blur');
     });
 
-    it('T7.4: ADD_ANNOTATION adds blur annotation with auto-incremented index', () => {
+    it('T7.4: ADD_ANNOTATION adds blur annotation with unnumbered (0) index', () => {
       let state = initialState;
       const blurGeo: BlurGeometry = { type: 'blur', x: 50, y: 80, width: 250, height: 120 };
 
@@ -681,7 +681,7 @@ describe('appReducer & State Engine', () => {
 
       expect(state.annotations).toHaveLength(1);
       expect(state.annotations[0].id).toBe('blur-1');
-      expect(state.annotations[0].index).toBe(1);
+      expect(state.annotations[0].index).toBe(0);
       expect(state.annotations[0].geometry.type).toBe('blur');
       expect(state.selectedAnnotationId).toBe('blur-1');
     });
@@ -711,7 +711,7 @@ describe('appReducer & State Engine', () => {
       expect(updated.height).toBe(80);
     });
 
-    it('T7.6: Re-indexes blur annotations dynamically when mixed shapes are deleted', () => {
+    it('T7.6: Re-indexes annotations dynamically preserving unnumbered blur when mixed shapes are deleted', () => {
       let state = initialState;
       state = appReducer(state, {
         type: 'ADD_ANNOTATION',
@@ -729,7 +729,7 @@ describe('appReducer & State Engine', () => {
         payload: { id: 'a3', geometry: samplePin },
       });
 
-      expect(state.annotations.map((a) => a.index)).toEqual([1, 2, 3]);
+      expect(state.annotations.map((a) => a.index)).toEqual([1, 0, 2]);
 
       state = appReducer(state, {
         type: 'DELETE_ANNOTATION',

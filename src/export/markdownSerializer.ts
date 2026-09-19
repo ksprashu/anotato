@@ -42,6 +42,16 @@ export function getColorDefinition(color: PresetColor) {
 }
 
 /**
+ * Filters out visual effect annotations (highlight, blur) that are not numbered notes.
+ */
+export function filterAnnotatableAnnotations(annotations: Annotation[]): Annotation[] {
+  if (!annotations) return [];
+  return annotations.filter(
+    (ann) => ann.geometry.type !== 'highlight' && ann.geometry.type !== 'blur'
+  );
+}
+
+/**
  * Serializes annotations into a standard numbered markdown list.
  * Multi-line notes are indented with 3 spaces so markdown parsers keep them nested under the list item.
  */
@@ -50,11 +60,12 @@ export function serializeToNumberedList(
   options?: MarkdownSerializeOptions
 ): string {
   const emptyListText = options?.emptyListPlaceholder ?? '_No annotations recorded._';
-  if (!annotations || annotations.length === 0) {
+  const annotatable = filterAnnotatableAnnotations(annotations);
+  if (annotatable.length === 0) {
     return emptyListText;
   }
 
-  const sorted = [...annotations].sort((a, b) => a.index - b.index);
+  const sorted = [...annotatable].sort((a, b) => a.index - b.index);
   const includeColors = options?.includeColorCodes !== false;
   const includeTypes = options?.includeTypeTags !== false;
   const emptyNoteText = options?.emptyNotesPlaceholder ?? '_No description provided._';
@@ -90,11 +101,12 @@ export function serializeToMarkdownTable(
   options?: MarkdownSerializeOptions
 ): string {
   const emptyListText = options?.emptyListPlaceholder ?? '_No annotations recorded._';
-  if (!annotations || annotations.length === 0) {
+  const annotatable = filterAnnotatableAnnotations(annotations);
+  if (annotatable.length === 0) {
     return emptyListText;
   }
 
-  const sorted = [...annotations].sort((a, b) => a.index - b.index);
+  const sorted = [...annotatable].sort((a, b) => a.index - b.index);
   const headerRow = '| # | Type | Color | Note |';
   const dividerRow = '|---|---|---|---|';
 
@@ -129,11 +141,12 @@ export function serializeToTaskChecklist(
   options?: MarkdownSerializeOptions
 ): string {
   const emptyListText = options?.emptyListPlaceholder ?? '_No annotations recorded._';
-  if (!annotations || annotations.length === 0) {
+  const annotatable = filterAnnotatableAnnotations(annotations);
+  if (annotatable.length === 0) {
     return emptyListText;
   }
 
-  const sorted = [...annotations].sort((a, b) => a.index - b.index);
+  const sorted = [...annotatable].sort((a, b) => a.index - b.index);
   const items = sorted.map((ann) => {
     const typeStr = formatShapeTypeName(ann.geometry.type);
     const colorDef = getColorDefinition(ann.style.color);

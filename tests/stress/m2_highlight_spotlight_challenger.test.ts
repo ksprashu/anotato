@@ -393,8 +393,7 @@ describe('Milestone M2 Adversarial Challenger Suite: Additive Highlight & Spotli
 
       // 1 base image + 1 spotlight backdrop
       expect(ctx.drawImage).toHaveBeenCalledTimes(2);
-      // All 3 badges rendered (fillText called for indices 1, 2, 3)
-      expect(ctx.fillText).toHaveBeenCalledWith('1', expect.any(Number), expect.any(Number));
+      // Badges rendered for box (2) and arrow (3); highlight (1) is unnumbered and omits badge
       expect(ctx.fillText).toHaveBeenCalledWith('2', expect.any(Number), expect.any(Number));
       expect(ctx.fillText).toHaveBeenCalledWith('3', expect.any(Number), expect.any(Number));
     });

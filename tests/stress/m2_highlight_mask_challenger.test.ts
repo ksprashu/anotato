@@ -399,13 +399,13 @@ describe('M2 Challenger: Empirical Overlapping Highlight & Mask Stress Suite', (
 
       expect(state.annotations).toHaveLength(count);
 
-      // Verify strict 1..N continuous sequence
+      // Verify unnumbered index 0 for all highlights
       for (let i = 0; i < count; i++) {
-        expect(state.annotations[i].index).toBe(i + 1);
+        expect(state.annotations[i].index).toBe(0);
         expect(state.annotations[i].geometry.type).toBe('highlight');
       }
 
-      // Delete 30 highlights and verify continuous 1..120 re-indexing
+      // Delete 30 highlights and verify remaining 120 retain unnumbered index 0
       for (let i = 1; i <= 30; i++) {
         state = appReducer(state, {
           type: 'DELETE_ANNOTATION',
@@ -415,7 +415,7 @@ describe('M2 Challenger: Empirical Overlapping Highlight & Mask Stress Suite', (
 
       expect(state.annotations).toHaveLength(120);
       for (let i = 0; i < 120; i++) {
-        expect(state.annotations[i].index).toBe(i + 1);
+        expect(state.annotations[i].index).toBe(0);
       }
     });
 
@@ -468,13 +468,13 @@ describe('M2 Challenger: Empirical Overlapping Highlight & Mask Stress Suite', (
       // Spotlight backdrop rendered with correct attributes
       const backdrop = screen.getByTestId('spotlight-backdrop');
       expect(backdrop).toBeInTheDocument();
-      expect(backdrop.getAttribute('fill')).toBe('rgba(0,0,0,0.45)');
+      expect(backdrop.getAttribute('fill')).toBe('rgba(0,0,0,0.68)');
       expect(backdrop.getAttribute('mask')).toBe('url(#spotlight-mask)');
       expect(backdrop.getAttribute('pointer-events')).toBe('none');
 
-      // Badges rendered for all 120 annotations
+      // Unnumbered highlights do not render badges
       const badges = container.querySelectorAll('[data-testid="shape-badge"]');
-      expect(badges.length).toBe(120);
+      expect(badges.length).toBe(0);
     });
 
     it('C1.3: Canvas 2D export applies additive punchout via destination-out on offscreen canvas with zero coordinate errors for 120 highlights', async () => {
@@ -551,7 +551,7 @@ describe('M2 Challenger: Empirical Overlapping Highlight & Mask Stress Suite', (
       expect(instrumented.getUnderflowCount()).toBe(0);
       expect(instrumented.getSaveCount()).toBe(instrumented.getRestoreCount());
       expect(instrumented.getCoordinateViolations()).toHaveLength(0);
-      expect(instrumented.getBadgeDrawCalls()).toHaveLength(120);
+      expect(instrumented.getBadgeDrawCalls()).toHaveLength(0); // Unnumbered highlights do not draw badges
     });
   });
 
@@ -625,13 +625,7 @@ describe('M2 Challenger: Empirical Overlapping Highlight & Mask Stress Suite', (
       }
       expect(instrumented.getCoordinateViolations()).toHaveLength(0);
       const badges = instrumented.getBadgeDrawCalls();
-      expect(badges).toHaveLength(3);
-      expect(badges[0].text).toBe('1');
-      expect(badges[1].text).toBe('2');
-      expect(badges[2].text).toBe('3');
-      expect(badges[0].x).toBe(300);
-      expect(badges[1].x).toBe(300);
-      expect(badges[2].x).toBe(300);
+      expect(badges).toHaveLength(0); // Unnumbered highlights do not draw badges
     });
 
     it('C2.2: Deeply nested concentric highlight geometries (5 levels) exhibit proper spatial containment and hit testing', () => {

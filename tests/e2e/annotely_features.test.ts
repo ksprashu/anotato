@@ -184,7 +184,7 @@ describe('Tier 1: Feature Coverage (Annotely Requirements R1 through R4)', () =>
 
       expect(state.annotations.length).toBe(1);
       expect(state.annotations[0].geometry.type).toBe('highlight');
-      expect(state.annotations[0].index).toBe(1);
+      expect(state.annotations[0].index).toBe(0);
     });
 
     it('F2.2: Interactive spotlight SVG mask structure with white base and black cutouts', () => {
@@ -192,7 +192,7 @@ describe('Tier 1: Feature Coverage (Annotely Requirements R1 through R4)', () =>
       const maskModel = generateSpotlightMaskModel([hl]);
 
       expect(maskModel.maskId).toBe('spotlight-mask');
-      expect(maskModel.backdropColor).toBe('rgba(0,0,0,0.45)');
+      expect(maskModel.backdropColor).toBe('rgba(0,0,0,0.68)');
       expect(maskModel.baseRect.fill).toBe('white');
       expect(maskModel.cutouts.length).toBe(1);
       expect(maskModel.cutouts[0]).toEqual({
@@ -238,7 +238,7 @@ describe('Tier 1: Feature Coverage (Annotely Requirements R1 through R4)', () =>
       const compositeApply = steps.find((s) => s.stage === 'spotlight_composite_apply');
 
       expect(backdropFill).toBeDefined();
-      expect(backdropFill?.details.color).toBe('rgba(0,0,0,0.45)');
+      expect(backdropFill?.details.color).toBe('rgba(0,0,0,0.68)');
       expect(cutouts.length).toBe(2);
       expect(cutouts[0].details.compositeOperation).toBe('destination-out');
       expect(cutouts[1].details.compositeOperation).toBe('destination-out');
@@ -297,7 +297,7 @@ describe('Tier 1: Feature Coverage (Annotely Requirements R1 through R4)', () =>
 
       expect(state.annotations.length).toBe(1);
       expect(state.annotations[0].geometry.type).toBe('blur');
-      expect(state.annotations[0].index).toBe(1);
+      expect(state.annotations[0].index).toBe(0);
     });
 
     it('F3.2: Interactive Gaussian blur SVG filter and clipPath preview overlay', () => {
@@ -361,7 +361,7 @@ describe('Tier 1: Feature Coverage (Annotely Requirements R1 through R4)', () =>
         payload: { geometry: { type: 'blur', x: 240, y: 10, width: 100, height: 50 }, note: 'Blur 3' },
       });
 
-      expect(state.annotations.map((a) => a.index)).toEqual([1, 2, 3]);
+      expect(state.annotations.map((a) => a.index)).toEqual([0, 0, 0]);
 
       // Delete the middle blur annotation
       const middleId = state.annotations[1].id;
@@ -371,8 +371,8 @@ describe('Tier 1: Feature Coverage (Annotely Requirements R1 through R4)', () =>
       });
 
       expect(state.annotations.length).toBe(2);
-      expect(state.annotations[0].index).toBe(1);
-      expect(state.annotations[1].index).toBe(2);
+      expect(state.annotations[0].index).toBe(0);
+      expect(state.annotations[1].index).toBe(0);
       expect(state.annotations[1].note).toBe('Blur 3');
     });
   });
@@ -788,8 +788,8 @@ describe('Tier 3: Cross-Feature Combinations & Interactions', () => {
     });
 
     expect(state.annotations.length).toBe(2);
-    expect(state.annotations[0].index).toBe(1);
-    expect(state.annotations[1].index).toBe(2);
+    expect(state.annotations[0].index).toBe(0); // Blur is unnumbered
+    expect(state.annotations[1].index).toBe(1); // Arrow is callout #1
 
     const { steps } = simulateAnnotelyCanvasExport(state.image!, state.annotations);
 
@@ -906,13 +906,13 @@ describe('Tier 3: Cross-Feature Combinations & Interactions', () => {
     });
 
     expect(state.annotations.length).toBe(4);
-    expect(state.annotations.map((a) => a.index)).toEqual([1, 2, 3, 4]);
+    expect(state.annotations.map((a) => a.index)).toEqual([0, 0, 1, 2]);
 
     const { steps, scale } = simulateAnnotelyCanvasExport(state.image!, state.annotations);
     expect(scale).toBeCloseTo(2.667, 2);
 
     const badgeSteps = steps.filter((s) => s.stage === 'render_scaled_badge');
-    expect(badgeSteps.length).toBe(4);
+    expect(badgeSteps.length).toBe(2); // Only Arrow and Pin have badges
     // All badges scaled proportionally to 4K
     for (const b of badgeSteps) {
       expect(b.details.resolutionScale).toBeCloseTo(2.667, 2);
@@ -990,17 +990,17 @@ describe('Tier 3: Cross-Feature Combinations & Interactions', () => {
     history.push(state);
 
     expect(state.annotations.length).toBe(3);
-    expect(state.annotations.map((a) => a.index)).toEqual([1, 2, 3]);
+    expect(state.annotations.map((a) => a.index)).toEqual([1, 0, 0]);
 
     // Simulate Undo 1 step (pop blur)
     state = history[2];
     expect(state.annotations.length).toBe(2);
-    expect(state.annotations.map((a) => a.index)).toEqual([1, 2]);
+    expect(state.annotations.map((a) => a.index)).toEqual([1, 0]);
 
     // Simulate Redo (restore blur)
     state = history[3];
     expect(state.annotations.length).toBe(3);
-    expect(state.annotations.map((a) => a.index)).toEqual([1, 2, 3]);
+    expect(state.annotations.map((a) => a.index)).toEqual([1, 0, 0]);
   });
 
   it('Combo 7: Dynamic re-indexing and deletion of mixed Annotely annotations in sidebar', () => {
@@ -1021,7 +1021,7 @@ describe('Tier 3: Cross-Feature Combinations & Interactions', () => {
       payload: { geometry: { type: 'pin', x: 400, y: 400 }, note: 'Step 4' },
     });
 
-    expect(state.annotations.map((a) => a.index)).toEqual([1, 2, 3, 4]);
+    expect(state.annotations.map((a) => a.index)).toEqual([1, 0, 0, 2]);
 
     // Delete Highlight (Step 2)
     const highlightId = state.annotations[1].id;
@@ -1034,9 +1034,9 @@ describe('Tier 3: Cross-Feature Combinations & Interactions', () => {
     expect(state.annotations[0].note).toBe('Step 1');
     expect(state.annotations[0].index).toBe(1);
     expect(state.annotations[1].note).toBe('Step 3');
-    expect(state.annotations[1].index).toBe(2); // Re-indexed from 3 to 2
+    expect(state.annotations[1].index).toBe(0); // Blur remains unnumbered (0)
     expect(state.annotations[2].note).toBe('Step 4');
-    expect(state.annotations[2].index).toBe(3); // Re-indexed from 4 to 3
+    expect(state.annotations[2].index).toBe(2); // Pin remains index 2
   });
 
   it('Combo 8: Full composite canvas export with all 4 Annotely features active in exact order', () => {
@@ -1126,7 +1126,7 @@ describe('Tier 4: Real-World Workload Scenarios', () => {
     });
 
     expect(state.annotations.length).toBe(3);
-    expect(state.annotations.map((a) => a.index)).toEqual([1, 2, 3]);
+    expect(state.annotations.map((a) => a.index)).toEqual([0, 0, 1]); // 2 Blurs (0, 0) and 1 Arrow (1)
 
     // Verify destructive baking guarantees privacy
     const { steps } = simulateAnnotelyCanvasExport(state.image!, state.annotations);
@@ -1262,6 +1262,6 @@ describe('Tier 4: Real-World Workload Scenarios', () => {
     expect(steps.filter((s) => s.stage === 'spotlight_cutout_punch').length).toBe(1);
     expect(steps.filter((s) => s.stage === 'render_arrow_shaft').length).toBe(1);
     expect(steps.filter((s) => s.stage === 'render_scaled_pin').length).toBe(1);
-    expect(steps.filter((s) => s.stage === 'render_scaled_badge').length).toBe(4);
+    expect(steps.filter((s) => s.stage === 'render_scaled_badge').length).toBe(2); // Only Arrow and Pin have badges
   });
 });

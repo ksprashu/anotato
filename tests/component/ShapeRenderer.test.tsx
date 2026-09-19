@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { ShapeRenderer } from '../../src/components/canvas/ShapeRenderer';
 import { PRESET_COLORS } from '../../src/constants/colors';
@@ -206,6 +206,89 @@ describe('ShapeRenderer Pure SVG Component', () => {
       const badge = screen.getByTestId('shape-badge');
       expect(badge).toBeInTheDocument();
       expect(badge.textContent).toBe('5');
+    });
+  });
+
+  describe('Annotation Hover Delete Button & Unnumbered Visual Effects', () => {
+    it('renders delete button when isHovered={true} and invokes onDelete on click', () => {
+      const boxGeo: BoxGeometry = { type: 'box', x: 50, y: 50, width: 100, height: 100 };
+      const onDeleteMock = vi.fn();
+      renderInSvg(
+        <ShapeRenderer
+          annotation={{
+            id: 'test-box-1',
+            geometry: boxGeo,
+            style: { color: 'amber', strokeWidth: 3, fillOpacity: 0.15 },
+            index: 1,
+          }}
+          isHovered={true}
+          onDelete={onDeleteMock}
+        />
+      );
+
+      const deleteBtn = screen.getByTestId('annotation-delete-btn');
+      expect(deleteBtn).toBeInTheDocument();
+      expect(deleteBtn.getAttribute('data-annotation-id')).toBe('test-box-1');
+
+      fireEvent.click(deleteBtn);
+      expect(onDeleteMock).toHaveBeenCalledWith('test-box-1');
+    });
+
+    it('does not render delete button when not hovered or selected', () => {
+      const boxGeo: BoxGeometry = { type: 'box', x: 50, y: 50, width: 100, height: 100 };
+      renderInSvg(
+        <ShapeRenderer
+          annotation={{
+            id: 'test-box-2',
+            geometry: boxGeo,
+            style: { color: 'amber', strokeWidth: 3, fillOpacity: 0.15 },
+            index: 1,
+          }}
+          isHovered={false}
+          isSelected={false}
+        />
+      );
+
+      expect(screen.queryByTestId('annotation-delete-btn')).not.toBeInTheDocument();
+    });
+
+    it('highlight and blur shapes omit badges but render delete button on hover', () => {
+      const onDeleteMock = vi.fn();
+      const { unmount } = renderInSvg(
+        <ShapeRenderer
+          annotation={{
+            id: 'hl-unnumber-1',
+            geometry: { type: 'highlight', x: 100, y: 100, width: 200, height: 150 },
+            style: { color: 'amber', strokeWidth: 3, fillOpacity: 0.15 },
+            index: 0,
+          }}
+          isHovered={true}
+          onDelete={onDeleteMock}
+        />
+      );
+
+      expect(screen.getByTestId('shape-highlight')).toBeInTheDocument();
+      expect(screen.queryByTestId('shape-badge')).not.toBeInTheDocument();
+      expect(screen.getByTestId('annotation-delete-btn')).toBeInTheDocument();
+
+      unmount();
+
+      renderInSvg(
+        <ShapeRenderer
+          annotation={{
+            id: 'blur-unnumber-1',
+            geometry: { type: 'blur', x: 100, y: 100, width: 200, height: 150 },
+            style: { color: 'amber', strokeWidth: 3, fillOpacity: 0 },
+            index: 0,
+          }}
+          isHovered={true}
+          onDelete={onDeleteMock}
+        />
+      );
+
+      expect(screen.getByTestId('shape-blur')).toBeInTheDocument();
+      expect(screen.queryByTestId('shape-badge')).not.toBeInTheDocument();
+      expect(screen.getByTestId('annotation-delete-btn')).toBeInTheDocument();
     });
   });
 });

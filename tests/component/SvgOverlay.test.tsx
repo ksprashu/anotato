@@ -249,17 +249,16 @@ describe('SvgOverlay Component', () => {
       // Spotlight backdrop should be visible during drag
       const backdrop = screen.getByTestId('spotlight-backdrop');
       expect(backdrop).toBeInTheDocument();
-      expect(backdrop.getAttribute('fill')).toBe('rgba(0,0,0,0.45)');
+      expect(backdrop.getAttribute('fill')).toBe('rgba(0,0,0,0.68)');
       expect(backdrop.getAttribute('mask')).toBe('url(#spotlight-mask)');
       expect(backdrop.getAttribute('pointer-events')).toBe('none');
 
       // Pointer up
       fireEvent.pointerUp(svg, { pointerId: 1, clientX: 350, clientY: 300 });
 
-      // Shape is finalized
+      // Shape is finalized - unnumbered highlight does not render a badge
       expect(screen.getByTestId('shape-highlight')).toBeInTheDocument();
-      const badge = screen.getByTestId('shape-badge');
-      expect(badge.textContent).toBe('1');
+      expect(screen.queryByTestId('shape-badge')).not.toBeInTheDocument();
     });
 
     it('renders unified spotlight-mask with white base rect and black cutouts for all highlights', () => {
@@ -380,9 +379,9 @@ describe('SvgOverlay Component', () => {
 
       fireEvent.pointerUp(svg, { pointerId: 1, clientX: 470, clientY: 170 });
 
-      // Finalized shape and persistent blur slice
+      // Finalized shape and persistent blur slice - unnumbered blur does not render a badge
       expect(screen.getByTestId('shape-blur')).toBeInTheDocument();
-      expect(screen.getByTestId('shape-badge').textContent).toBe('1');
+      expect(screen.queryByTestId('shape-badge')).not.toBeInTheDocument();
     });
 
     it('B1.2: renders SVG feGaussianBlur filter in defs with stdDeviation="10" and edgeMode="duplicate"', () => {

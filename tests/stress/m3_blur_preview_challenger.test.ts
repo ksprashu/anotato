@@ -118,9 +118,9 @@ describe('Milestone M3 Empirical Adversarial Challenger: Live Blur Mask & Intera
 
       expect(state.annotations).toHaveLength(count);
 
-      // Verify continuous 1..60 sequence
+      // Verify unnumbered index 0 for all blur annotations
       for (let i = 0; i < count; i++) {
-        expect(state.annotations[i].index).toBe(i + 1);
+        expect(state.annotations[i].index).toBe(0);
         expect(state.annotations[i].geometry.type).toBe('blur');
         const geom = state.annotations[i].geometry as BlurGeometry;
         expect(geom.width).toBeGreaterThanOrEqual(0);
@@ -137,7 +137,7 @@ describe('Milestone M3 Empirical Adversarial Challenger: Live Blur Mask & Intera
 
       expect(state.annotations).toHaveLength(40);
       for (let i = 0; i < 40; i++) {
-        expect(state.annotations[i].index).toBe(i + 1);
+        expect(state.annotations[i].index).toBe(0);
       }
 
       // Reorder: move last annotation (index 40) to index 5
@@ -148,7 +148,7 @@ describe('Milestone M3 Empirical Adversarial Challenger: Live Blur Mask & Intera
 
       expect(state.annotations).toHaveLength(40);
       for (let i = 0; i < 40; i++) {
-        expect(state.annotations[i].index).toBe(i + 1);
+        expect(state.annotations[i].index).toBe(0);
       }
     });
 

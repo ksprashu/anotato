@@ -615,9 +615,8 @@ describe('M2 Challenger Suite: Destination-Out Highlight Export & State Isolatio
       // Verify that after composite rasterization of all annotations:
       // 1. globalCompositeOperation is strictly 'source-over'
       expect(mainCtx.globalCompositeOperation).toBe('source-over');
-      // 2. All 4 annotations rasterized without error
+      // 2. Non-highlight annotations rasterized with badges (highlight is unnumbered visual effect)
       expect(mainCtx.fillText).toHaveBeenCalledWith('1', 50, 50); // Box badge
-      expect(mainCtx.fillText).toHaveBeenCalledWith('2', 300, 300); // Highlight badge
       expect(mainCtx.fillText).toHaveBeenCalledWith('3', 600, 400); // Arrow badge
       expect(mainCtx.fillText).toHaveBeenCalledWith('4', 900, 573); // Pin badge (scaled pointerHeight: 27 on 1080p, 600 - 27 = 573)
     });
@@ -805,10 +804,8 @@ describe('M2 Challenger Suite: Destination-Out Highlight Export & State Isolatio
       // 4. All 100 cutouts punched into the backdrop
       expect(offscreenCtx.fill).toHaveBeenCalledTimes(100);
 
-      // 5. Sequence badges rendered for all 100 highlights
-      expect(mainCtx.fillText).toHaveBeenCalledTimes(100);
-      expect(mainCtx.fillText).toHaveBeenCalledWith('1', expect.any(Number), expect.any(Number));
-      expect(mainCtx.fillText).toHaveBeenCalledWith('100', expect.any(Number), expect.any(Number));
+      // 5. Unnumbered highlights do not render sequence badges
+      expect(mainCtx.fillText).toHaveBeenCalledTimes(0);
     });
 
     it('C4.2: 500 sequential highlight shape rasterizations execute with zero coordinate violations (no NaN / Infinity)', () => {
@@ -921,7 +918,8 @@ describe('M2 Challenger Suite: Destination-Out Highlight Export & State Isolatio
       const canvas = await renderCompositeCanvas(mockStandardImage, [subpixelHighlight]);
       const mainCtx = canvas.getContext('2d')!;
 
-      expect(mainCtx.fillText).toHaveBeenCalledWith('1', 123.456789, 234.567891);
+      expect(mainCtx.stroke).toHaveBeenCalled();
+      expect(mainCtx.fillText).not.toHaveBeenCalled();
     });
 
     it('C5.3: Minimal zero-dimension and micro-dimension highlights execute safely without errors', async () => {

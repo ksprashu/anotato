@@ -534,7 +534,7 @@ export const SvgOverlay: React.FC<SvgOverlayProps> = ({ className = '' }) => {
           data-testid="spotlight-backdrop"
           width="100%"
           height="100%"
-          fill="rgba(0,0,0,0.45)"
+          fill="rgba(0,0,0,0.68)"
           mask="url(#spotlight-mask)"
           pointerEvents="none"
         />
@@ -559,6 +559,9 @@ export const SvgOverlay: React.FC<SvgOverlayProps> = ({ className = '' }) => {
           onMouseLeave={() => {
             dispatch({ type: 'HOVER_ANNOTATION', payload: null });
           }}
+          onDelete={(id) => {
+            dispatch({ type: 'DELETE_ANNOTATION', payload: { id } });
+          }}
         />
       ))}
 
@@ -572,7 +575,9 @@ export const SvgOverlay: React.FC<SvgOverlayProps> = ({ className = '' }) => {
               strokeWidth: activeStrokeWidth,
               fillOpacity: activeFillOpacity,
             },
-            index: annotations.length + 1,
+            index: drawingState.draftGeometry.type === 'highlight' || drawingState.draftGeometry.type === 'blur'
+              ? 0
+              : annotations.filter((a) => a.geometry.type !== 'highlight' && a.geometry.type !== 'blur').length + 1,
           }}
           isDraft={true}
           resolutionScale={resolutionScale}

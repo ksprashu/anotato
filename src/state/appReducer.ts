@@ -52,13 +52,25 @@ export function generateUniqueId(): string {
 }
 
 /**
- * Pure function enforcing the continuous 1..N re-indexing invariant.
+ * Determines whether a given geometry type is an annotatable callout that receives
+ * sequential 1..N badge numbering and notes.
+ * Visual effect shapes (highlight, blur) are unnumbered and return false.
+ */
+export function isAnnotatableGeometry(geometry: AnnotationGeometry): boolean {
+  return geometry.type !== 'highlight' && geometry.type !== 'blur';
+}
+
+/**
+ * Pure function enforcing the continuous 1..N re-indexing invariant for annotatable callouts.
+ * Visual effect shapes (highlight, blur) are unnumbered (index: 0) and do not consume sequence numbers.
  * Preserves object references if index hasn't changed for fast React memoization.
  */
 export function reindexAnnotations(annotations: Annotation[]): Annotation[] {
   let hasChanges = false;
-  const reindexed = annotations.map((ann, idx) => {
-    const expectedIndex = idx + 1;
+  let nextAnnotatableIndex = 1;
+  const reindexed = annotations.map((ann) => {
+    const isAnnotatable = isAnnotatableGeometry(ann.geometry);
+    const expectedIndex = isAnnotatable ? nextAnnotatableIndex++ : 0;
     if (ann.index === expectedIndex) {
       return ann;
     }

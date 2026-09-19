@@ -467,7 +467,7 @@ describe('1:1 Native Composite Canvas Exporter Unit Tests', () => {
       expect(backdropCalls).toHaveLength(1);
     });
 
-    it('E5.4: Rasterizes highlight border stroke and anchors sequence badge at top-left (x, y)', () => {
+    it('E5.4: Rasterizes highlight border stroke and omits badge for unnumbered visual effect', () => {
       const canvas = createCanvas(800, 600);
       const ctx = canvas.getContext('2d')!;
 
@@ -485,7 +485,7 @@ describe('1:1 Native Composite Canvas Exporter Unit Tests', () => {
 
       expect(ctx.stroke).toHaveBeenCalled();
       expect(strokeStyles).toContain(PRESET_COLORS.amber.stroke);
-      expect(ctx.fillText).toHaveBeenCalledWith('1', 100, 150);
+      expect(ctx.fillText).not.toHaveBeenCalled();
     });
 
     it('E5.5: Zero-highlight fast path: does not create offscreen spotlight canvas when no highlights exist', async () => {
