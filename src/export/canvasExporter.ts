@@ -308,8 +308,33 @@ export function rasterizeAnnotation(
         style.strokeWidth
       );
 
-      // Pass 1: Underlay casing with drop shadow (encapsulated in ctx.save / ctx.restore)
+      // Pass 1: Foreground core shaft and filled arrowhead polygon
+      // Core shaft line
+      ctx.beginPath();
+      ctx.moveTo(startX, startY);
+      ctx.lineTo(arrowhead.shaftEnd.x, arrowhead.shaftEnd.y);
+      ctx.strokeStyle = colorDef.stroke;
+      ctx.lineWidth = style.strokeWidth;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+
+      // Core arrowhead filled and stroked polygon
+      ctx.beginPath();
+      ctx.moveTo(arrowhead.tip.x, arrowhead.tip.y);
+      ctx.lineTo(arrowhead.wingLeft.x, arrowhead.wingLeft.y);
+      ctx.lineTo(arrowhead.notch.x, arrowhead.notch.y);
+      ctx.lineTo(arrowhead.wingRight.x, arrowhead.wingRight.y);
+      ctx.closePath();
+      ctx.fillStyle = colorDef.stroke;
+      ctx.fill();
+      ctx.strokeStyle = colorDef.stroke;
+      ctx.lineWidth = 1;
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+
+      // Pass 2: Underlay casing with drop shadow placed underneath core via destination-over
       ctx.save();
+      ctx.globalCompositeOperation = 'destination-over';
       ctx.shadowColor = 'rgba(0,0,0,0.45)';
       ctx.shadowBlur = 4;
       ctx.shadowOffsetY = 2;
@@ -338,30 +363,7 @@ export function rasterizeAnnotation(
       ctx.stroke();
 
       ctx.restore();
-
-      // Pass 2: Foreground core shaft and filled arrowhead polygon
-      // Core shaft line
-      ctx.beginPath();
-      ctx.moveTo(startX, startY);
-      ctx.lineTo(arrowhead.shaftEnd.x, arrowhead.shaftEnd.y);
-      ctx.strokeStyle = colorDef.stroke;
-      ctx.lineWidth = style.strokeWidth;
-      ctx.lineCap = 'round';
-      ctx.stroke();
-
-      // Core arrowhead filled and stroked polygon
-      ctx.beginPath();
-      ctx.moveTo(arrowhead.tip.x, arrowhead.tip.y);
-      ctx.lineTo(arrowhead.wingLeft.x, arrowhead.wingLeft.y);
-      ctx.lineTo(arrowhead.notch.x, arrowhead.notch.y);
-      ctx.lineTo(arrowhead.wingRight.x, arrowhead.wingRight.y);
-      ctx.closePath();
-      ctx.fillStyle = colorDef.stroke;
-      ctx.fill();
-      ctx.strokeStyle = colorDef.stroke;
-      ctx.lineWidth = 1;
-      ctx.lineJoin = 'round';
-      ctx.stroke();
+      ctx.globalCompositeOperation = 'source-over';
 
       // Pass 3: Render tail-anchored badge at (startX, startY)
       rasterizeBadge(ctx, { x: startX, y: startY }, index, style.color, scale);

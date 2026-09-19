@@ -264,6 +264,9 @@ export const ShapeRenderer: React.FC<ShapeRendererProps> = ({
           <g data-testid="arrow-graphic" filter="url(#arrow-drop-shadow)">
             {/* Underlay casing shaft */}
             <line
+              ref={(el) => {
+                if (el) el.setAttribute('className', 'arrow-casing');
+              }}
               x1={startX}
               y1={startY}
               x2={arrowhead.shaftEnd.x}
@@ -271,6 +274,7 @@ export const ShapeRenderer: React.FC<ShapeRendererProps> = ({
               stroke="rgba(0,0,0,0.55)"
               strokeWidth={style.strokeWidth + 3.5}
               strokeLinecap="round"
+              className="arrow-casing pointer-events-none"
             />
             {/* Underlay casing arrowhead polygon */}
             <polygon

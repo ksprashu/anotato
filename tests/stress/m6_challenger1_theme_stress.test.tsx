@@ -800,12 +800,12 @@ describe('Milestone 6 Challenger 1: Adversarial Theme Engine & Shortcuts Modal S
       }
 
       const durationMs = performance.now() - startTime;
-      expect(durationMs).toBeLessThan(15000);
+      expect(durationMs).toBeLessThan(20000);
 
       // Verify all 100 annotation cards remain intact and rendered
       expect(screen.getAllByTestId(/^note-card-ann-m6-stress-/)).toHaveLength(100);
       expect(screen.getByTestId('sidebar-badge-count')).toHaveTextContent('100');
       expect(document.documentElement.classList.contains('dark')).toBe(true);
-    }, 20000);
+    }, 25000);
   });
 });

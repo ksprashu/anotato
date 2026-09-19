@@ -4,6 +4,7 @@ import path from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  base: './',
   plugins: [react()],
   resolve: {
     alias: {
@@ -21,11 +22,11 @@ export default defineConfig({
     css: true,
     testTimeout: 20000,
     include: ['src/**/*.{test,spec}.{ts,tsx}', 'tests/**/*.{test,spec}.{ts,tsx}'],
-    exclude: ['node_modules/**', 'tests/e2e/test-runner.ts', 'tests/e2e/tier*'],
+    exclude: ['node_modules/**', 'tests/e2e/test-runner.ts', 'tests/e2e/tier*', 'tests/e2e/r1-r5-tier*'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      exclude: ['node_modules/', 'tests/setup.ts', 'tests/e2e/test-runner.ts', 'tests/e2e/tier*'],
+      exclude: ['node_modules/', 'tests/setup.ts', 'tests/e2e/test-runner.ts', 'tests/e2e/tier*', 'tests/e2e/r1-r5-tier*'],
     },
   },
 });
