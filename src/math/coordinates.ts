@@ -89,6 +89,59 @@ export function computeZoomDelta(
   return clamp(currentZoom * factor, minZoom, maxZoom);
 }
 
+// =========================================================================
+// Zoom Presets & Quantization
+// =========================================================================
+
+/**
+ * Standard 10-step zoom preset ladder matching the UI selector:
+ * 10%, 25%, 33%, 50%, 67%, 75%, 100%, 125%, 150%, 200%.
+ */
+export const ZOOM_PRESETS = [
+  0.10, // 10%
+  0.25, // 25%
+  0.33, // 33%
+  0.50, // 50%
+  0.67, // 67%
+  0.75, // 75%
+  1.00, // 100%
+  1.25, // 125%
+  1.50, // 150%
+  2.00, // 200%
+] as const;
+
+export type ZoomPreset = (typeof ZOOM_PRESETS)[number];
+
+/**
+ * Quantizes mouse wheel deltaY into monotonic single-step transitions
+ * across the 10-preset zoom ladder:
+ * - Negative deltaY (scroll up): zooms in by 1 preset step (clamped at 2.00)
+ * - Positive deltaY (scroll down): zooms out by 1 preset step (clamped at 0.10)
+ * - Zero deltaY: returns currentZoom unchanged
+ * - Off-ladder zoom: snaps to the immediate adjacent preset without multi-tier leap
+ * - Floating point tolerance epsilon = 0.005 absorbs precision drift
+ */
+export function quantizeWheelZoom(currentZoom: number, deltaY: number): number {
+  if (deltaY === 0) return currentZoom;
+  const zoomIn = deltaY < 0;
+
+  if (zoomIn) {
+    for (let i = 0; i < ZOOM_PRESETS.length; i++) {
+      if (ZOOM_PRESETS[i] > currentZoom + 0.005) {
+        return ZOOM_PRESETS[i];
+      }
+    }
+    return ZOOM_PRESETS[ZOOM_PRESETS.length - 1];
+  } else {
+    for (let i = ZOOM_PRESETS.length - 1; i >= 0; i--) {
+      if (ZOOM_PRESETS[i] < currentZoom - 0.005) {
+        return ZOOM_PRESETS[i];
+      }
+    }
+    return ZOOM_PRESETS[0];
+  }
+}
+
 /**
  * Calculates the auto-fit ViewportState to center and fit an image within the viewport.
  */

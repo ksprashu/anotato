@@ -7,12 +7,11 @@ import {
   DEFAULT_PADDING,
   computeZoomTransform,
   getFitToViewportTransform,
+  ZOOM_PRESETS,
 } from '../../math/coordinates';
 import { Point } from '../../types';
 
-export const ZOOM_PRESETS = [
-  0.1, 0.25, 0.33, 0.5, 0.67, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0, 4.0, 5.0, 8.0, 10.0, 20.0,
-];
+export { ZOOM_PRESETS };
 
 export function getNextZoomIn(currentZoom: number): number {
   const nextPreset = ZOOM_PRESETS.find((z) => z > currentZoom + 0.005);
@@ -174,7 +173,7 @@ export const ZoomControls: React.FC<ZoomControlsProps> = ({
         {/* Preset Menu */}
         {isDropdownOpen && (
           <div
-            className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 w-44 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl py-1 z-50 text-xs"
+            className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 w-44 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl py-1 z-50 text-xs max-h-72 overflow-y-auto"
             role="menu"
             aria-label="Zoom presets"
             data-testid="zoom-preset-menu"
@@ -182,7 +181,7 @@ export const ZoomControls: React.FC<ZoomControlsProps> = ({
             <div className="px-2 py-1 text-[10px] uppercase font-semibold text-slate-400 dark:text-slate-500 tracking-wider">
               Zoom Presets
             </div>
-            {[0.25, 0.5, 0.75, 1.0, 1.5, 2.0, 4.0].map((preset) => (
+            {ZOOM_PRESETS.map((preset) => (
               <button
                 key={preset}
                 type="button"

@@ -20,6 +20,7 @@ export interface AppContextValue {
   canRedo: boolean;
   undo: () => void;
   redo: () => void;
+  resetHistory: (snapshot?: HistorySnapshot) => void;
   txManager: TransactionManager;
   commitGesture: (finalSnapshot?: HistorySnapshot) => void;
 }
@@ -60,6 +61,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children, initialState
     () => createInitialHistory(state.annotations, state.selectedAnnotationId)
   );
 
+  const stateRef = useRef(state);
+  stateRef.current = state;
+
   // Synchronize history on structural state changes if not in active transaction
   const lastSnapshotRef = useRef<HistorySnapshot>({
     annotations: state.annotations,
@@ -68,6 +72,37 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children, initialState
 
   const dispatch = useCallback((action: AppAction) => {
     rawDispatch(action);
+
+    // When base image is replaced or cleared, reset history stack
+    // so Undo (Cmd+Z) cannot resuscitate stale annotations from previous images
+    if (
+      action.type === 'REPLACE_IMAGE_AND_CLEAR' ||
+      action.type === 'CLEAR_IMAGE' ||
+      action.type === 'SET_IMAGE'
+    ) {
+      const emptySnapshot: HistorySnapshot = {
+        annotations: [],
+        selectedAnnotationId: null,
+      };
+      setHistory({ type: 'RESET', snapshot: emptySnapshot });
+      lastSnapshotRef.current = emptySnapshot;
+    } else if (action.type === 'REPLACE_IMAGE_AND_KEEP') {
+      const keepSnapshot: HistorySnapshot = {
+        annotations: stateRef.current.annotations,
+        selectedAnnotationId: null,
+      };
+      setHistory({ type: 'RESET', snapshot: keepSnapshot });
+      lastSnapshotRef.current = keepSnapshot;
+    }
+  }, []);
+
+  const resetHistoryCallback = useCallback((snapshot?: HistorySnapshot) => {
+    const snap = snapshot ?? {
+      annotations: stateRef.current.annotations,
+      selectedAnnotationId: stateRef.current.selectedAnnotationId,
+    };
+    setHistory({ type: 'RESET', snapshot: snap });
+    lastSnapshotRef.current = snap;
   }, []);
 
   useEffect(() => {
@@ -132,6 +167,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children, initialState
     canRedo: checkCanRedo(history),
     undo,
     redo,
+    resetHistory: resetHistoryCallback,
     txManager: txManagerRef.current,
     commitGesture,
   };

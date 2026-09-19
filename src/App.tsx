@@ -36,6 +36,9 @@ export const AppContent: React.FC = () => {
   const {
     isReplaceModalOpen,
     pendingImage,
+    replaceAndClearAnnotations,
+    replaceAndKeepAnnotations,
+    addAsLayer,
     confirmImageReplacement,
     cancelImageReplacement,
     openFilePicker,
@@ -48,7 +51,7 @@ export const AppContent: React.FC = () => {
     if (!state.image) return;
     trackCopy({ type: 'image_clipboard', annotationCount: state.annotations.length });
     try {
-      const blob = await exportCompositeBlob(state.image, state.annotations);
+      const blob = await exportCompositeBlob(state.image, state.annotations, state.overlays);
       const res = await writeImageToClipboard(blob);
       if (res.success && !res.fallbackUsed) {
         toast.success('Copied image to clipboard!', 'Ready to paste into chat, PRs, or docs');
@@ -93,9 +96,12 @@ export const AppContent: React.FC = () => {
   return (
     <div className="flex flex-col h-screen w-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-hidden font-sans select-none transition-colors duration-200">
       {/* Top Application Header / Toolbar */}
-      <header className="h-14 border-b border-slate-200 dark:border-slate-800 px-3 sm:px-4 flex items-center justify-between bg-white/90 dark:bg-slate-900/80 backdrop-blur z-20 shrink-0 transition-colors duration-200">
+      <header
+        data-testid="app-header"
+        className="min-h-14 h-auto border-b border-slate-200 dark:border-slate-800 px-3 sm:px-4 py-1.5 flex flex-wrap items-center justify-between gap-y-2 gap-x-2 bg-white/90 dark:bg-slate-900/80 backdrop-blur z-20 shrink-0 transition-colors duration-200"
+      >
         {/* Left: Branding & History Controls */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0 order-1">
           <div
             data-testid="app-brand-logo"
             className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 flex items-center justify-center font-black text-slate-950 shadow-md shadow-amber-500/20 text-base select-none transition-transform hover:scale-105 tracking-tighter"
@@ -111,34 +117,17 @@ export const AppContent: React.FC = () => {
             </span>
             <span
               data-testid="app-brand-badge"
-              className="hidden md:inline-block text-[10px] uppercase font-mono tracking-wider px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 font-semibold border border-amber-500/30"
+              className="hidden sm:inline-block text-[10px] uppercase font-mono tracking-wider px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 font-semibold border border-amber-500/30"
             >
               Developer Canvas
             </span>
           </div>
-          <div className="hidden sm:block w-px h-6 bg-slate-200 dark:bg-slate-800 mx-1" />
-          <div className="hidden sm:flex">
-            <HistoryControls />
-          </div>
+          <div className="w-px h-6 bg-slate-200 dark:bg-slate-800 mx-0.5 sm:mx-1" />
+          <HistoryControls />
         </div>
 
-        {/* Center: Main Tool Selector & Color Palette */}
-        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto py-1">
-          <MainToolbar />
-          <div className="hidden md:flex">
-            <ColorPalette />
-          </div>
-        </div>
-
-        {/* Right: Zoom, Image Actions, Export Actions, ThemeToggle, Help & Sidebar Toggle */}
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          <div className="hidden lg:flex items-center gap-2">
-            <ZoomControls />
-            <div className="w-px h-6 bg-slate-200 dark:bg-slate-800" />
-            <ImageActions onRequestUpload={openFilePicker} />
-            <div className="w-px h-6 bg-slate-200 dark:bg-slate-800" />
-          </div>
-
+        {/* Right: Export Actions, ThemeToggle, Help & Sidebar Toggle */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 order-2 xl:order-3">
           <ExportActions />
 
           <div className="w-px h-6 bg-slate-200 dark:bg-slate-800" />
@@ -185,10 +174,24 @@ export const AppContent: React.FC = () => {
             )}
           </button>
         </div>
+
+        {/* Center / Multi-Row: Annotation Tools, Styling Palette, Zoom & Image Actions */}
+        <div
+          data-testid="annotation-tools-container"
+          className="flex flex-wrap items-center justify-center sm:justify-start xl:justify-center gap-1.5 sm:gap-2 py-0.5 order-3 xl:order-2 w-full xl:w-auto"
+        >
+          <MainToolbar />
+          <ColorPalette />
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <ZoomControls />
+            <div className="w-px h-6 bg-slate-200 dark:bg-slate-800" />
+            <ImageActions onRequestUpload={openFilePicker} />
+          </div>
+        </div>
       </header>
 
       {/* Main Split-View Workspace */}
-      <main className="flex-1 relative w-full h-full overflow-hidden flex flex-row">
+      <main className="flex-1 min-h-0 relative w-full overflow-hidden flex flex-row">
         {/* Left / Primary: Canvas Workspace */}
         <div className="flex-1 relative h-full overflow-hidden min-w-0">
           <CanvasWorkspace onImageDropped={(file) => processImageBlob(file, file.name)} />
@@ -204,6 +207,9 @@ export const AppContent: React.FC = () => {
       <ReplaceImageModal
         isOpen={isReplaceModalOpen && pendingImage !== null}
         annotationCount={state.annotations.length}
+        onReplaceClear={replaceAndClearAnnotations}
+        onReplaceKeep={replaceAndKeepAnnotations}
+        onAddLayer={addAsLayer}
         onConfirm={confirmImageReplacement}
         onCancel={cancelImageReplacement}
       />

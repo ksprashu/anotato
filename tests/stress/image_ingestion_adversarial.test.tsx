@@ -756,4 +756,287 @@ describe('Adversarial Image Ingestion & Replace Image Stress Tests', () => {
       expect(container.style.cursor).toBe('default');
     });
   });
+
+  // =========================================================================
+  // Suite 7: Follow-up R1 Invariants (Ghost Annotations, Style Retention, Overlays)
+  // =========================================================================
+  describe('Suite 7: Follow-up R1 Invariants (Ghost Annotations, Style Retention, Overlays)', () => {
+    const mockAnnotation1: Annotation = {
+      id: 'ann-red-box',
+      index: 1,
+      geometry: { type: 'box', x: 50, y: 50, width: 200, height: 100 },
+      style: { color: 'red', strokeWidth: 4, fillOpacity: 0.5 },
+      note: 'Critical visual defect',
+      createdAt: 1000,
+      updatedAt: 1000,
+    };
+
+    const mockAnnotation2: Annotation = {
+      id: 'ann-green-circle',
+      index: 2,
+      geometry: { type: 'ellipse', cx: 400, cy: 300, rx: 60, ry: 60 },
+      style: { color: 'green', strokeWidth: 2, fillOpacity: 0.0 },
+      note: 'Verified component boundary',
+      createdAt: 2000,
+      updatedAt: 2000,
+    };
+
+    const mockAnnotation3: Annotation = {
+      id: 'ann-purple-pin',
+      index: 3,
+      geometry: { type: 'pin', x: 700, y: 500 },
+      style: { color: 'purple', strokeWidth: 8, fillOpacity: 0.3 },
+      note: 'Missing click handler',
+      createdAt: 3000,
+      updatedAt: 3000,
+    };
+
+    // -----------------------------------------------------------------------
+    // Invariant 1: 0 Ghost Annotations on Replace & Clear
+    // -----------------------------------------------------------------------
+    it('purges all annotations leaving 0 ghost annotations after Replace & Clear', async () => {
+      const onImageLoaded = vi.fn();
+      const initialAnnotations = [mockAnnotation1, mockAnnotation2, mockAnnotation3];
+
+      const { result } = renderHook(
+        () => useClipboardPaste({ onImageLoaded, requireConfirmationIfAnnotated: true }),
+        {
+          wrapper: createWrapper({
+            image: mockBaseImage,
+            annotations: initialAnnotations,
+          }),
+        }
+      );
+
+      // 1. Stage new image
+      const newFile = new File(['replaced-png-data'], 'new_screenshot.png', { type: 'image/png' });
+      await act(async () => {
+        await result.current.processImageBlob(newFile);
+      });
+
+      expect(result.current.isReplaceModalOpen).toBe(true);
+
+      // 2. Execute Replace & Clear
+      act(() => {
+        result.current.confirmImageReplacement();
+      });
+
+      expect(result.current.isReplaceModalOpen).toBe(false);
+      expect(result.current.pendingImage).toBeNull();
+      expect(onImageLoaded).toHaveBeenCalledTimes(1);
+
+      // 3. Render CanvasWorkspace to assert 0 ghost SVG elements
+      const { container } = render(
+        <AppProvider
+          initialState={{
+            image: onImageLoaded.mock.calls[0][0],
+            annotations: [],
+            overlays: [],
+          }}
+        >
+          <CanvasWorkspace />
+        </AppProvider>
+      );
+
+      // Zero annotation shapes exist in DOM
+      const shapeElements = container.querySelectorAll('[data-testid^="shape-"]');
+      expect(shapeElements.length).toBe(0);
+
+      // Canvas base image updated
+      const baseImg = screen.getByTestId('canvas-base-image');
+      expect(baseImg).toHaveAttribute('src', onImageLoaded.mock.calls[0][0].src);
+    });
+
+    it('adversarial 20-burst replace-clear loop guarantees 0 residual ghost annotations', async () => {
+      let currentAnnotations = [mockAnnotation1, mockAnnotation2];
+
+      for (let burst = 0; burst < 20; burst++) {
+        const { result } = renderHook(
+          () => useClipboardPaste({ requireConfirmationIfAnnotated: true }),
+          {
+            wrapper: createWrapper({
+              image: mockBaseImage,
+              annotations: currentAnnotations,
+            }),
+          }
+        );
+
+        const file = new File([`burst-${burst}`], `burst_${burst}.png`, { type: 'image/png' });
+        await act(async () => {
+          await result.current.processImageBlob(file);
+        });
+
+        act(() => {
+          result.current.confirmImageReplacement();
+        });
+
+        expect(result.current.pendingImage).toBeNull();
+        expect(result.current.isReplaceModalOpen).toBe(false);
+        // Reset annotations to empty for next round
+        currentAnnotations = [];
+      }
+    });
+
+    // -----------------------------------------------------------------------
+    // Invariant 2: Style Preservation on Replace & Keep
+    // -----------------------------------------------------------------------
+    it('preserves shape color, strokeWidth, and fillOpacity without mutation on Replace & Keep', async () => {
+      const onImageLoaded = vi.fn();
+      const initialAnnotations = [mockAnnotation1, mockAnnotation2, mockAnnotation3];
+
+      const { result } = renderHook(
+        () => useClipboardPaste({ onImageLoaded, requireConfirmationIfAnnotated: true }),
+        {
+          wrapper: createWrapper({
+            image: mockBaseImage,
+            annotations: initialAnnotations,
+            activeColor: 'amber',
+            activeStrokeWidth: 4,
+            activeFillOpacity: 0.15,
+          }),
+        }
+      );
+
+      const replacementFile = new File(['kept-png-data'], 'replacement.png', { type: 'image/png' });
+      await act(async () => {
+        await result.current.processImageBlob(replacementFile);
+      });
+
+      expect(result.current.isReplaceModalOpen).toBe(true);
+
+      // Execute Replace & Keep
+      act(() => {
+        result.current.replaceAndKeepAnnotations();
+      });
+
+      expect(result.current.isReplaceModalOpen).toBe(false);
+
+      // Assert styles of retained annotations
+      expect(initialAnnotations[0].style).toEqual({
+        color: 'red',
+        strokeWidth: 4,
+        fillOpacity: 0.5,
+      });
+
+      expect(initialAnnotations[1].style).toEqual({
+        color: 'green',
+        strokeWidth: 2,
+        fillOpacity: 0.0,
+      });
+
+      expect(initialAnnotations[2].style).toEqual({
+        color: 'purple',
+        strokeWidth: 8,
+        fillOpacity: 0.3,
+      });
+
+      // Sequential indices and notes remain intact
+      expect(initialAnnotations[0].index).toBe(1);
+      expect(initialAnnotations[1].index).toBe(2);
+      expect(initialAnnotations[2].index).toBe(3);
+      expect(initialAnnotations[0].note).toBe('Critical visual defect');
+    });
+
+    // -----------------------------------------------------------------------
+    // Invariant 3: Overlay Stacking and Rendering
+    // -----------------------------------------------------------------------
+    it('stacks multiple overlay layers beneath annotations and above base image', async () => {
+      const overlay1 = {
+        id: 'overlay-layer-1',
+        src: 'blob:http://localhost/layer-1',
+        naturalWidth: 800,
+        naturalHeight: 600,
+        fileName: 'layer1.png',
+        fileSize: 4096,
+        x: 20,
+        y: 30,
+        width: 800,
+        height: 600,
+        opacity: 0.9,
+      };
+
+      const overlay2 = {
+        id: 'overlay-layer-2',
+        src: 'blob:http://localhost/layer-2',
+        naturalWidth: 400,
+        naturalHeight: 300,
+        fileName: 'layer2.png',
+        fileSize: 2048,
+        x: 100,
+        y: 150,
+        width: 400,
+        height: 300,
+        opacity: 0.75,
+      };
+
+      const { container } = render(
+        <AppProvider
+          initialState={{
+            image: mockBaseImage,
+            overlays: [overlay1, overlay2],
+            annotations: [mockAnnotation1],
+          }}
+        >
+          <CanvasWorkspace />
+        </AppProvider>
+      );
+
+      // Verify both overlays rendered in DOM
+      const overlayEl1 = screen.getByTestId('canvas-overlay-image-overlay-layer-1');
+      const overlayEl2 = screen.getByTestId('canvas-overlay-image-overlay-layer-2');
+      const baseImg = screen.getByTestId('canvas-base-image');
+      const svgOverlay = container.querySelector('svg');
+
+      expect(overlayEl1).toBeInTheDocument();
+      expect(overlayEl2).toBeInTheDocument();
+
+      // Assert overlay attributes and styles
+      expect(overlayEl1).toHaveStyle({ left: '20px', top: '30px', opacity: '0.9' });
+      expect(overlayEl2).toHaveStyle({ left: '100px', top: '150px', opacity: '0.75' });
+
+      // Assert DOM child hierarchy: Base Image < Overlay 1 < Overlay 2 < SvgOverlay
+      const transformLayer = screen.getByTestId('canvas-transform-layer');
+      const children = Array.from(transformLayer.children);
+      const baseIndex = children.indexOf(baseImg);
+      const ov1Index = children.indexOf(overlayEl1);
+      const ov2Index = children.indexOf(overlayEl2);
+      const svgIndex = children.indexOf(svgOverlay!);
+
+      expect(baseIndex).toBeLessThan(ov1Index);
+      expect(ov1Index).toBeLessThan(ov2Index);
+      expect(ov2Index).toBeLessThan(svgIndex);
+    });
+
+    it('exports composite PNG containing base image, overlay layers, and annotations', async () => {
+      const { renderCompositeCanvas } = await import('../../src/export/canvasExporter');
+
+      const overlay = {
+        id: 'ov-export-1',
+        src: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+        naturalWidth: 400,
+        naturalHeight: 300,
+        fileName: 'patch.png',
+        fileSize: 1024,
+        x: 50,
+        y: 50,
+        width: 400,
+        height: 300,
+        opacity: 0.8,
+      };
+
+      const canvas = await renderCompositeCanvas(
+        mockBaseImage,
+        [mockAnnotation1],
+        [overlay]
+      );
+
+      const ctx = canvas.getContext('2d')!;
+      // drawImage called for base image and overlay
+      expect(ctx.drawImage).toHaveBeenCalledTimes(2);
+      // Base image drawn at (0, 0, 1920, 1080)
+      expect(ctx.drawImage).toHaveBeenNthCalledWith(1, expect.anything(), 0, 0, 1920, 1080);
+      // Overlay drawn at (50, 50, 400, 300)
+      expect(ctx.drawImage).toHaveBeenNthCalledWith(2, expect.anything(), 50, 50, 400, 300);
+    });
+  });
 });

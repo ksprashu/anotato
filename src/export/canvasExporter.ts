@@ -1,4 +1,4 @@
-import { BaseImage, Annotation, PresetColor } from '../types';
+import { BaseImage, Annotation, PresetColor, ImageOverlay } from '../types';
 import { PRESET_COLORS } from '../constants/colors';
 import { calculateArrowhead } from '../math/geometry';
 import { getBadgePositionForShape, getBadgeDimensions } from '../math/badges';
@@ -7,6 +7,7 @@ export interface ExportCanvasOptions {
   pixelRatio?: number; // Default 1.0 (exact 1:1 native)
   backgroundColor?: string; // Optional background fill if image has alpha
   drawDrafts?: boolean; // Default false
+  overlays?: ImageOverlay[]; // Optional overlay layers list
 }
 
 /**
@@ -327,8 +328,24 @@ export function rasterizeAnnotation(
 export async function renderCompositeCanvas(
   baseImage: BaseImage,
   annotations: Annotation[],
-  options: ExportCanvasOptions = {}
+  overlaysOrOptions?: ImageOverlay[] | ExportCanvasOptions,
+  options?: ExportCanvasOptions
 ): Promise<HTMLCanvasElement> {
+  let overlays: ImageOverlay[] = [];
+  let exportOptions: ExportCanvasOptions = {};
+
+  if (Array.isArray(overlaysOrOptions)) {
+    overlays = overlaysOrOptions;
+    if (options) {
+      exportOptions = options;
+    }
+  } else if (overlaysOrOptions) {
+    exportOptions = overlaysOrOptions;
+    if (exportOptions.overlays) {
+      overlays = exportOptions.overlays;
+    }
+  }
+
   const width = baseImage.naturalWidth;
   const height = baseImage.naturalHeight;
 
@@ -342,8 +359,8 @@ export async function renderCompositeCanvas(
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
 
-  if (options.backgroundColor) {
-    ctx.fillStyle = options.backgroundColor;
+  if (exportOptions.backgroundColor) {
+    ctx.fillStyle = exportOptions.backgroundColor;
     ctx.fillRect(0, 0, width, height);
   }
 
@@ -353,7 +370,30 @@ export async function renderCompositeCanvas(
     ctx.drawImage(imgElement, 0, 0, width, height);
   }
 
-  // 2. Draw Vector Annotations in sequence order
+  // 2. Draw Overlay Image Layers in sequential order beneath annotations
+  if (overlays && overlays.length > 0) {
+    for (const overlay of overlays) {
+      if (overlay.src) {
+        try {
+          const overlayImg = await loadImageElement(overlay.src);
+          ctx.save();
+          if (typeof overlay.opacity === 'number') {
+            ctx.globalAlpha = Math.max(0, Math.min(1, overlay.opacity));
+          }
+          const dx = overlay.x ?? 0;
+          const dy = overlay.y ?? 0;
+          const dw = overlay.width ?? overlay.naturalWidth ?? overlayImg.naturalWidth;
+          const dh = overlay.height ?? overlay.naturalHeight ?? overlayImg.naturalHeight;
+          ctx.drawImage(overlayImg, dx, dy, dw, dh);
+          ctx.restore();
+        } catch (err) {
+          console.warn(`Failed to render overlay layer ${overlay.id}:`, err);
+        }
+      }
+    }
+  }
+
+  // 3. Draw Vector Annotations in sequence order
   const sortedAnnotations = [...annotations].sort((a, b) => a.index - b.index);
   for (const annotation of sortedAnnotations) {
     rasterizeAnnotation(ctx, annotation);
@@ -391,9 +431,10 @@ export function exportCanvasToBlob(
 export async function exportCompositeBlob(
   baseImage: BaseImage,
   annotations: Annotation[],
+  overlaysOrOptions?: ImageOverlay[] | ExportCanvasOptions,
   options?: ExportCanvasOptions
 ): Promise<Blob> {
-  const canvas = await renderCompositeCanvas(baseImage, annotations, options);
+  const canvas = await renderCompositeCanvas(baseImage, annotations, overlaysOrOptions, options);
   return exportCanvasToBlob(canvas, 'image/png');
 }
 
@@ -403,8 +444,9 @@ export async function exportCompositeBlob(
 export async function exportCompositeDataUrl(
   baseImage: BaseImage,
   annotations: Annotation[],
+  overlaysOrOptions?: ImageOverlay[] | ExportCanvasOptions,
   options?: ExportCanvasOptions
 ): Promise<string> {
-  const canvas = await renderCompositeCanvas(baseImage, annotations, options);
+  const canvas = await renderCompositeCanvas(baseImage, annotations, overlaysOrOptions, options);
   return canvas.toDataURL('image/png');
 }

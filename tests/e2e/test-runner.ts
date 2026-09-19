@@ -581,12 +581,16 @@ export async function runCli(): Promise<boolean> {
 // Auto-run if executed directly via tsx
 const isDirectExecution = import.meta.url.endsWith(process.argv[1]?.replace(/^file:\/\//, '') || '');
 if (isDirectExecution || process.argv[1]?.endsWith('test-runner.ts')) {
-  // Dynamically import all test files
+  // Dynamically import all test files (baseline regression + R1-R5 enhancements)
   Promise.all([
     import('./tier1-features.test.js').catch(() => import('./tier1-features.test')),
     import('./tier2-boundaries.test.js').catch(() => import('./tier2-boundaries.test')),
     import('./tier3-combinations.test.js').catch(() => import('./tier3-combinations.test')),
     import('./tier4-workloads.test.js').catch(() => import('./tier4-workloads.test')),
+    import('./r1-r5-tier1-features.test.js').catch(() => import('./r1-r5-tier1-features.test')),
+    import('./r1-r5-tier2-boundaries.test.js').catch(() => import('./r1-r5-tier2-boundaries.test')),
+    import('./r1-r5-tier3-combinations.test.js').catch(() => import('./r1-r5-tier3-combinations.test')),
+    import('./r1-r5-tier4-workloads.test.js').catch(() => import('./r1-r5-tier4-workloads.test')),
   ]).then(() => {
     return runCli();
   }).catch((err) => {
